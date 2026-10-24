@@ -5,11 +5,12 @@ import {
   listMessages,
   pushMessage,
 } from "@/lib/dev-store";
+import { getActor } from "@/lib/session";
 import type { ApiErrorCode, MessagesResponse } from "@/lib/types";
 
 /**
- * 仮実装：guestId / nickname をクライアントから受け取る。
- * 本番では署名付きCookieから getActor() で取得する（なりすまし防止）。
+ * guestId / nickname は署名付きCookie（入室画面で発行）から getActor() で取得する。
+ * クライアントから送られた値は使わない（なりすまし防止）。
  */
 
 type Ctx = { params: Promise<{ roomId: string }> }; // Next.js 16: params は Promise
@@ -23,15 +24,15 @@ function fail(code: ApiErrorCode, status: number) {
 export async function GET(req: Request, { params }: Ctx) {
   const { roomId } = await params;
   const url = new URL(req.url);
-  const guestId = url.searchParams.get("guestId");
-  const nickname = url.searchParams.get("nickname");
   const cursor = Math.max(0, Number(url.searchParams.get("cursor") ?? 0) || 0);
 
-  if (!guestId || !nickname) return fail("BAD_REQUEST", 400);
+  const actor = await getActor(roomId);
+  if (!actor) return fail("NOT_MEMBER", 401);
 
   const room = getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
-  if (!addMember(room, guestId, nickname)) return fail("ROOM_FULL", 403);
+  // 入室時に登録済みだが、開発サーバーの再読込でストアが消えた場合に備えて冪等に登録する
+  if (!addMember(room, actor.guestId, actor.nickname)) return fail("ROOM_FULL", 403);
 
   const { messages, nextCursor } = listMessages(room, cursor);
   const body: MessagesResponse = {
@@ -47,18 +48,17 @@ export async function GET(req: Request, { params }: Ctx) {
 export async function POST(req: Request, { params }: Ctx) {
   const { roomId } = await params;
   const json = await req.json().catch(() => null);
-  const guestId = json?.guestId as string | undefined;
-  const nickname = json?.nickname as string | undefined;
   const text = (json?.body as string | undefined)?.trim();
 
-  if (!guestId || !nickname || !text || text.length > MAX_BODY) {
-    return fail("BAD_REQUEST", 400);
-  }
+  if (!text || text.length > MAX_BODY) return fail("BAD_REQUEST", 400);
+
+  const actor = await getActor(roomId);
+  if (!actor) return fail("NOT_MEMBER", 401);
 
   const room = getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
-  if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
+  if (!room.members.has(actor.guestId)) return fail("NOT_MEMBER", 403);
 
-  const msg = pushMessage(room, guestId, nickname, text);
+  const msg = pushMessage(room, actor.guestId, actor.nickname, text);
   return NextResponse.json(msg, { status: 201 });
 }

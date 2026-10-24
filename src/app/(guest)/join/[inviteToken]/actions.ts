@@ -1,5 +1,9 @@
 "use server";
 
+import { redirect } from "next/navigation";
+
+import { addMember, getRoom, resolveInvite } from "@/lib/dev-store";
+import { getActor, setRoomSession } from "@/lib/session";
 import { NICKNAME_MAX_LENGTH } from "./constants";
 
 export type JoinRoomState = {
@@ -10,13 +14,14 @@ export type JoinRoomState = {
   fields?: {
     nickname: string;
   };
-  message?: string;
+  formError?: string;
 };
 
 export async function joinRoom(
   _prevState: JoinRoomState,
   formData: FormData,
 ): Promise<JoinRoomState> {
+  const inviteToken = String(formData.get("inviteToken") ?? "");
   const nickname = String(formData.get("nickname") ?? "").trim();
 
   const errors: JoinRoomState["errors"] = {};
@@ -29,9 +34,24 @@ export async function joinRoom(
     return { errors, fields: { nickname } };
   }
 
-  // TODO: Redis接続後に実装する
-  // - 招待トークンの有効性チェック（更新済みの古いトークンなら入室不可）
-  // - 一時ユーザーIDの発行とCookie保存
-  // - チャットルームへリダイレクト
-  return { message: "入室処理はまだ実装されていません（ダミー）" };
+  // TODO: Redis接続後、dev-store を lib/redis/ の実装に差し替える
+  const roomId = resolveInvite(inviteToken);
+  const room = roomId ? getRoom(roomId) : null;
+  if (!roomId || !room) {
+    return {
+      fields: { nickname },
+      formError:
+        "この招待URLは期限切れか、ルームが消滅しています。招待した人に新しいURLをもらってください",
+    };
+  }
+
+  // 同じブラウザで入り直した場合は同じ参加者として扱う（自分のメッセージが右側のまま）
+  const current = await getActor(roomId);
+  const guestId = current?.guestId ?? crypto.randomUUID();
+  if (!addMember(room, guestId, nickname)) {
+    return { fields: { nickname }, formError: "このルームは満員です" };
+  }
+
+  await setRoomSession(roomId, { guestId, nickname }, room.info.expiresAt);
+  redirect(`/rooms/${roomId}`);
 }

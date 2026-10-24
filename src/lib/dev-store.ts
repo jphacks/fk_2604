@@ -14,8 +14,14 @@ type DevRoom = {
   messages: Message[];
 };
 
-const g = globalThis as unknown as { __devRooms?: Map<string, DevRoom> };
+type DevInvite = { roomId: string; expiresAt: number };
+
+const g = globalThis as unknown as {
+  __devRooms?: Map<string, DevRoom>;
+  __devInvites?: Map<string, DevInvite>;
+};
 const rooms = (g.__devRooms ??= new Map<string, DevRoom>());
+const invites = (g.__devInvites ??= new Map<string, DevInvite>()); // inviteToken -> ルーム
 
 export function getRoom(roomId: string): DevRoom | null {
   let room = rooms.get(roomId);
@@ -50,6 +56,24 @@ export function createRoom(name: string, startDate: string, expiresAt: number): 
   };
   rooms.set(info.id, { info, startDate, members: new Map(), messages: [] });
   return info;
+}
+
+/** 招待トークンを発行する。expiresAt を過ぎると使えなくなる（古いURLからは入れない） */
+export function issueInvite(roomId: string, expiresAt: number): string {
+  const token = crypto.randomUUID().replaceAll("-", "");
+  invites.set(token, { roomId, expiresAt });
+  return token;
+}
+
+/** 招待トークンから roomId を引く。無効・期限切れなら null */
+export function resolveInvite(token: string): string | null {
+  const invite = invites.get(token);
+  if (!invite) return null;
+  if (invite.expiresAt <= Date.now()) {
+    invites.delete(token);
+    return null;
+  }
+  return invite.roomId;
 }
 
 /** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */

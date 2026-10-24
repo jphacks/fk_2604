@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { Member, Message, MessagesResponse, RoomInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +11,8 @@ import { cn } from "@/lib/utils";
  *  1. 定数・型
  *  2. 小さな関数（時刻・残り時間の整形）
  *  3. ページ本体（状態管理・通信）
- *  4. 画面の描画（ニックネーム入力 / 満員・消滅 / チャット）
+ *  4. 画面の描画（満員・消滅 / チャット）
+ * 入室（ニックネーム入力）は /join/[inviteToken] で行い、参加証はCookieに入る
  * ============================================================ */
 
 /* ---------- 1. 定数・型 ---------- */
@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 type Identity = Member;
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
-const STORAGE_KEY = "ephemeral-chat:identity";
 const POLL_MS = 2500; // 新着を取りに行く間隔
 
 /* ---------- 2. 小さな関数 ---------- */
@@ -49,14 +48,10 @@ function formatRemaining(expiresAt: number | undefined, now: number) {
 
 /* ---------- 3. ページ本体 ---------- */
 
-// roomId は app/rooms/[roomId]/page.tsx から受け取る
-export function Chats({ roomId }: { roomId: string }) {
+// roomId と自分の情報（Cookieの参加証から取得）は app/rooms/[roomId]/page.tsx から受け取る
+export function Chats({ roomId, me }: { roomId: string; me: Identity }) {
 
   // --- 状態 ---
-  const [me, setMe] = useState<Identity | null>(null);
-  const [ready, setReady] = useState(false); // localStorageの確認が終わったか
-  const [nameInput, setNameInput] = useState("");
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [memberCount, setMemberCount] = useState(0);
@@ -72,31 +67,18 @@ export function Chats({ roomId }: { roomId: string }) {
   const composing = useRef(false); // 日本語変換中のEnterを送信と誤認しないため
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // --- ブラウザに保存した一時ID＋ニックネームを読み込む ---
-  // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
-  // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) setMe(JSON.parse(saved));
-    } catch {}
-    setReady(true);
-  }, []);
-
   // --- 新着メッセージの取得 ---
+  // 自分が誰かはCookieの参加証でサーバーが判定するので、ここでは送らない
   const fetchNew = useCallback(async () => {
-    if (!me || fetching.current) return;
+    if (fetching.current) return;
     fetching.current = true;
-    const qs = new URLSearchParams({
-      guestId: me.guestId,
-      nickname: me.nickname,
-      cursor: String(cursor.current),
-    });
+    const qs = new URLSearchParams({ cursor: String(cursor.current) });
     try {
       const res = await fetch(`/api/rooms/${roomId}/messages?${qs}`, {
         cache: "no-store",
       });
-      if (res.status === 404) return setStatus("gone");
+      // 401: 参加証のCookieがない。Cookieはルームの消滅時刻に切れるので消滅扱いにする
+      if (res.status === 404 || res.status === 401) return setStatus("gone");
       if (res.status === 403) return setStatus("full");
       if (!res.ok) return setStatus("error");
       const data: MessagesResponse = await res.json();
@@ -116,15 +98,14 @@ export function Chats({ roomId }: { roomId: string }) {
     } finally {
       fetching.current = false;
     }
-  }, [roomId, me]);
+  }, [roomId]);
 
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
-    if (!me) return;
     fetchNew();
     const t = setInterval(fetchNew, POLL_MS);
     return () => clearInterval(t);
-  }, [fetchNew, me]);
+  }, [fetchNew]);
 
   // カウントダウン用に1秒ごとに現在時刻を更新
   useEffect(() => {
@@ -140,12 +121,12 @@ export function Chats({ roomId }: { roomId: string }) {
   // --- 送信 ---
   async function send() {
     const body = text.trim();
-    if (!me || !body || sending) return;
+    if (!body || sending) return;
     setSending(true);
     const res = await fetch(`/api/rooms/${roomId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...me, body }),
+      body: JSON.stringify({ body }),
     });
     if (res.ok) {
       setText("");
@@ -156,39 +137,7 @@ export function Chats({ roomId }: { roomId: string }) {
 
   /* ---------- 4. 画面の描画 ---------- */
 
-  if (!ready) return null;
-
-  // (a) ニックネーム入力（仮の入室フォーム）
-  if (!me) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-slate-100 p-4">
-        <form
-          className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const nickname = nameInput.trim();
-            if (!nickname) return;
-            const identity = { guestId: crypto.randomUUID(), nickname };
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
-            setMe(identity);
-          }}
-        >
-          <h1 className="text-lg font-bold">ニックネームを入力</h1>
-          <Input
-            value={nameInput}
-            maxLength={20}
-            placeholder="例：もえ"
-            onChange={(e) => setNameInput(e.target.value)}
-          />
-          <Button type="submit" className="w-full" disabled={!nameInput.trim()}>
-            入室
-          </Button>
-        </form>
-      </main>
-    );
-  }
-
-  // (b) 満員・消滅
+  // (a) 満員・消滅
   if (status === "gone" || status === "full") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-2 bg-slate-100 p-4 text-center">
@@ -204,7 +153,7 @@ export function Chats({ roomId }: { roomId: string }) {
     );
   }
 
-  // (c) チャット本体
+  // (b) チャット本体
   // 自分を先頭に、サーバーから受け取った参加者を並べる
   const participants = [me, ...members.filter((p) => p.guestId !== me.guestId)];
 
