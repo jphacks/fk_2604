@@ -4,7 +4,13 @@
 
 ## 製品概要
 
-エフェメラルメッセージ
+### コミュニケーション × Tech
+
+<p align="center">
+  <img src="docs/images/sns_happy_man.png" alt="スマホで仲間と会話する人" width="30%">
+  <img src="docs/images/times.jpg" alt="×" width="30%">
+  <img src="docs/images/computer_mob_programming.png" alt="チームで開発する様子" width="30%">
+</p>
 
 ### 背景(製品開発のきっかけ、課題等)
 
