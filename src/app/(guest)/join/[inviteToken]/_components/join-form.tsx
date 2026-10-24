@@ -10,12 +10,11 @@ import { NICKNAME_MAX_LENGTH } from "../constants";
 
 const initialState: JoinRoomState = {};
 
-export function JoinForm({ inviteToken }: { inviteToken: string }) {
+export function JoinForm() {
   const [state, formAction, pending] = useActionState(joinRoom, initialState);
 
   return (
     <form action={formAction} noValidate>
-      <input type="hidden" name="inviteToken" value={inviteToken} />
       <CardContent className="flex flex-col gap-4 pb-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="nickname" className="text-sm font-medium">
@@ -39,9 +38,9 @@ export function JoinForm({ inviteToken }: { inviteToken: string }) {
           )}
         </div>
 
-        {state.formError && (
-          <p role="alert" className="text-sm text-destructive">
-            {state.formError}
+        {state.message && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {state.message}
           </p>
         )}
       </CardContent>

@@ -26,11 +26,6 @@ export function todayJst(now = Date.now()): string {
   return new Date(now + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-/** 次の 0:00 JST の epoch ms。招待URLはこの時刻に更新される */
-export function nextMidnightJst(now = Date.now()): number {
-  return Date.parse(`${todayJst(now)}T00:00:00+09:00`) + DAY_MS;
-}
-
 /** 開始日・終了日を含めた日数（10/26〜10/28 なら 3） */
 export function countDays(startDate: string, endDate: string): number {
   return (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / DAY_MS + 1;

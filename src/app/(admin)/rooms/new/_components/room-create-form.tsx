@@ -100,8 +100,7 @@ export function RoomCreateForm() {
       {state.created && (
         <ShareUrlDialog
           inviteUrl={state.created.inviteUrl}
-          // 管理者もゲストと同じ入室画面でニックネームを入れてからチャットへ入る
-          onClose={() => router.push(`/join/${state.created!.inviteToken}`)}
+          onClose={() => router.push(`/rooms/${state.created!.roomId}`)}
         />
       )}
     </>

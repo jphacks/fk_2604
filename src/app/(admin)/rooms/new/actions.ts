@@ -2,8 +2,8 @@
 
 import { headers } from "next/headers";
 
-import { createRoom as createDevRoom, issueInvite } from "@/lib/dev-store";
-import { endOfDayJst, nextMidnightJst, validateRoomPeriod } from "@/lib/room-period";
+import { createRoom as createDevRoom } from "@/lib/dev-store";
+import { endOfDayJst, validateRoomPeriod } from "@/lib/room-period";
 import { ROOM_NAME_MAX_LENGTH } from "./constants";
 
 export type CreateRoomState = {
@@ -16,7 +16,7 @@ export type CreateRoomState = {
     name: string;
   };
   created?: {
-    inviteToken: string;
+    roomId: string;
     inviteUrl: string;
   };
 };
@@ -43,17 +43,16 @@ export async function createRoom(
 
   // TODO: Supabase / Redis 接続後に差し替える
   // - ログイン中の管理者IDを owner として保存
-  // - 0:00 を過ぎたら新しいトークンを発行する（ルーム設定画面を開いたときなど）
+  // - 招待トークンを発行（毎日0:00 JSTで更新。古いトークンでは入室不可）
   const room = createDevRoom(name, startDate, endOfDayJst(endDate));
-  // 招待URLは次の 0:00 JST まで有効（ルームがそれより先に消えるならその時刻まで）
-  const inviteToken = issueInvite(room.id, Math.min(nextMidnightJst(), room.expiresAt));
+  const inviteToken = crypto.randomUUID().replaceAll("-", "");
 
   const h = await headers();
   const origin = h.get("origin") ?? `https://${h.get("host")}`;
 
   return {
     created: {
-      inviteToken,
+      roomId: room.id,
       inviteUrl: `${origin}/join/${inviteToken}`,
     },
   };

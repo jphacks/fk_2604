@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-// ルーム作成後に共有URLを表示するダイアログ。閉じると入室画面へ進む
+// ルーム作成後に共有URLを表示するダイアログ。閉じるとチャット画面へ進む
 export function ShareUrlDialog({
   inviteUrl,
   onClose,
