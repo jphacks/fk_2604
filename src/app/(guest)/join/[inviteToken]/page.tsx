@@ -7,15 +7,33 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { RoomPreview } from "@/types/room";
+import { createHash } from "node:crypto";
+import { createClient } from "@/lib/supabase/server";
 import { JoinForm } from "./_components/join-form";
 
 export const metadata: Metadata = {
   title: "トークルームに入室",
 };
 
-// TODO: Redis接続後、招待トークンからルーム情報を取得する
+function isRoomPreview(value: unknown): value is RoomPreview {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { id?: unknown }).id === "string" &&
+    typeof (value as { name?: unknown }).name === "string"
+  );
+}
+
 async function getRoomPreview(inviteToken: string): Promise<RoomPreview> {
-  return { id: `dummy-${inviteToken}`, name: "誕生日サプライズ" };
+  const supabase = await createClient();
+  const tokenHash = createHash("sha256").update(inviteToken).digest("hex");
+  const { data } = await supabase
+    .rpc("get_room_by_invite", { p_token_hash: tokenHash })
+    .maybeSingle();
+  if (!isRoomPreview(data)) {
+    return { id: "", name: "利用できないルーム" };
+  }
+  return { id: data.id, name: data.name };
 }
 
 export default async function JoinPage({
@@ -38,7 +56,7 @@ export default async function JoinPage({
             チャットで表示するニックネームを入力してください
           </CardDescription>
         </CardHeader>
-        <JoinForm />
+        <JoinForm inviteToken={inviteToken} />
       </Card>
     </main>
   );

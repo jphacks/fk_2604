@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { createClient } from "@/lib/supabase/server";
 import { validateEmail, validateNewPassword } from "../validation";
 
 export type SignupState = {
@@ -14,6 +15,7 @@ export type SignupState = {
   fields?: {
     email: string;
   };
+  message?: string;
 };
 
 export async function signup(
@@ -37,8 +39,19 @@ export async function signup(
     return { errors, fields: { email } };
   }
 
-  // TODO: Supabase接続後に実装する
-  // - supabase.auth.signUp でアカウントを作成
-  // - 登録済みのメールアドレスならエラーを返す
-  redirect("/signup/totp");
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) {
+    return {
+      errors: { email: "登録処理に失敗しました。入力内容を確認してください" },
+      fields: { email },
+    };
+  }
+  if (!data.session) {
+    return {
+      fields: { email },
+      message: "確認メールを送信しました。メールアドレスを確認してからログインしてください",
+    };
+  }
+  redirect("/");
 }

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { createClient } from "@/lib/supabase/server";
 import { validateEmail } from "../validation";
 
 export type LoginState = {
@@ -30,8 +31,13 @@ export async function login(
     return { errors, fields: { email } };
   }
 
-  // TODO: Supabase接続後に実装する
-  // - supabase.auth.signInWithPassword でメールアドレスとパスワードを照合
-  // - 失敗時は「メールアドレスまたはパスワードが違います」を返す
-  redirect("/login/verify");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    return {
+      errors: { password: "メールアドレスまたはパスワードが違います" },
+      fields: { email },
+    };
+  }
+  redirect("/");
 }

@@ -13,42 +13,21 @@ type DevRoom = {
   messages: Message[];
 };
 
-const g = globalThis as unknown as { __devRooms?: Map<string, DevRoom> };
-const rooms = (g.__devRooms ??= new Map<string, DevRoom>());
+const g = globalThis as unknown as { __devMessageRooms?: Map<string, DevRoom> };
+const rooms = (g.__devMessageRooms ??= new Map<string, DevRoom>());
 
-export function getRoom(roomId: string): DevRoom | null {
+export function getMessageRoom(roomId: string, info: RoomInfo): DevRoom {
   let room = rooms.get(roomId);
-  // 動作確認用：未作成のIDは「人数上限なし・3時間」のルームとして自動作成
   if (!room) {
     room = {
-      info: {
-        id: roomId,
-        name: "誕生日サプライズ会議",
-        maxMembers: null,
-        expiresAt: Date.now() + 3 * 60 * 60 * 1000,
-      },
+      info,
       members: new Map(),
       messages: [],
     };
     rooms.set(roomId, room);
   }
-  if (room.info.expiresAt <= Date.now()) {
-    rooms.delete(roomId);
-    return null; // 期限切れ＝消滅
-  }
+  room.info = info;
   return room;
-}
-
-/** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
-export function addMember(room: DevRoom, guestId: string, nickname: string) {
-  if (room.members.has(guestId)) {
-    room.members.set(guestId, nickname);
-    return true;
-  }
-  const max = room.info.maxMembers;
-  if (max !== null && room.members.size >= max) return false;
-  room.members.set(guestId, nickname);
-  return true;
 }
 
 export function pushMessage(
