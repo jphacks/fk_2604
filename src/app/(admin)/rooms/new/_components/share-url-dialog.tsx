@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -67,8 +68,18 @@ export function ShareUrlDialog({
             {copied ? <Check /> : <Copy />}
           </Button>
         </div>
+        {/* ダークモードでも読み取れるよう、白い台紙の上に黒で描く */}
+        <div className="mx-auto rounded-lg bg-white p-3 ring-1 ring-foreground/10">
+          <QRCodeSVG
+            value={inviteUrl}
+            size={160}
+            marginSize={0}
+            role="img"
+            aria-label="共有用URLのQRコード"
+          />
+        </div>
         <p className="text-xs text-muted-foreground">
-          ※ 毎日0:00（日本時間）に新しいURLに更新されます。更新後は、このURLからは入室できません
+          ※ 毎日0:00（日本時間）に新しいURLに更新されます。更新後は、このURLとQRコードからは入室できません
         </p>
 
         <DialogFooter>
