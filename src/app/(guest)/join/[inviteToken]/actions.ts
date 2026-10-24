@@ -7,6 +7,10 @@ export type JoinRoomState = {
     nickname?: string;
     password?: string;
   };
+  // 入力エラー時にフォームへ戻す値（パスワードは戻さない）
+  fields?: {
+    nickname: string;
+  };
   message?: string;
 };
 
@@ -27,7 +31,7 @@ export async function joinRoom(
     errors.password = "参加用パスワードを入力してください";
   }
   if (errors.nickname || errors.password) {
-    return { errors };
+    return { errors, fields: { nickname } };
   }
 
   // TODO: Redis接続後に実装する

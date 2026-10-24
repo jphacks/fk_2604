@@ -26,6 +26,7 @@ export function JoinForm() {
             placeholder="例: たろう"
             maxLength={NICKNAME_MAX_LENGTH}
             autoComplete="nickname"
+            defaultValue={state.fields?.nickname}
             aria-invalid={!!state.errors?.nickname}
             aria-describedby={state.errors?.nickname ? "nickname-error" : undefined}
             required
