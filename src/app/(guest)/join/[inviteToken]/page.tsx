@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-
 import {
   Card,
   CardDescription,
@@ -7,13 +6,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { RoomPreview } from "@/types/room";
-import { createHash } from "node:crypto";
-import { createClient } from "@/lib/supabase/server";
 import { JoinForm } from "./_components/join-form";
 
-export const metadata: Metadata = {
-  title: "トークルームに入室",
-};
+export const metadata: Metadata = { title: "トークルームに入室" };
 
 function isRoomPreview(value: unknown): value is RoomPreview {
   return (
@@ -25,15 +20,14 @@ function isRoomPreview(value: unknown): value is RoomPreview {
 }
 
 async function getRoomPreview(inviteToken: string): Promise<RoomPreview> {
+  const { createHash } = await import("node:crypto");
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const tokenHash = createHash("sha256").update(inviteToken).digest("hex");
   const { data } = await supabase
     .rpc("get_room_by_invite", { p_token_hash: tokenHash })
     .maybeSingle();
-  if (!isRoomPreview(data)) {
-    return { id: "", name: "利用できないルーム" };
-  }
-  return { id: data.id, name: data.name };
+  return isRoomPreview(data) ? data : { id: "", name: "利用できないルーム" };
 }
 
 export default async function JoinPage({
@@ -41,7 +35,6 @@ export default async function JoinPage({
 }: PageProps<"/join/[inviteToken]">) {
   const { inviteToken } = await params;
   const room = await getRoomPreview(inviteToken);
-
   return (
     <main className="flex flex-1 items-center justify-center bg-muted/40 px-4 py-12">
       <Card className="w-full max-w-sm">
@@ -49,8 +42,7 @@ export default async function JoinPage({
           <CardTitle className="text-lg">
             <span className="font-semibold">{room.name}</span>
             <span className="text-muted-foreground"> のトークルームに</span>
-            <br />
-            入室します
+            <br />入室します
           </CardTitle>
           <CardDescription>
             チャットで表示するニックネームを入力してください

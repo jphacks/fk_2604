@@ -8,14 +8,16 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll(values) {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
           try {
-            values.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Server Components may not be able to write refreshed cookies.
+            // Server Components may not always be able to write cookies.
           }
         },
       },
