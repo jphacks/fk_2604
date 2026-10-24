@@ -38,26 +38,6 @@ export function JoinForm() {
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-sm font-medium">
-            参加用パスワード
-          </label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="off"
-            aria-invalid={!!state.errors?.password}
-            aria-describedby={state.errors?.password ? "password-error" : undefined}
-            required
-          />
-          {state.errors?.password && (
-            <p id="password-error" className="text-sm text-destructive">
-              {state.errors.password}
-            </p>
-          )}
-        </div>
-
         {state.message && (
           <p role="status" className="text-sm text-muted-foreground">
             {state.message}

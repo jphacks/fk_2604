@@ -5,9 +5,8 @@ import { NICKNAME_MAX_LENGTH } from "./constants";
 export type JoinRoomState = {
   errors?: {
     nickname?: string;
-    password?: string;
   };
-  // 入力エラー時にフォームへ戻す値（パスワードは戻さない）
+  // 入力エラー時にフォームへ戻す値
   fields?: {
     nickname: string;
   };
@@ -19,7 +18,6 @@ export async function joinRoom(
   formData: FormData,
 ): Promise<JoinRoomState> {
   const nickname = String(formData.get("nickname") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
 
   const errors: JoinRoomState["errors"] = {};
   if (!nickname) {
@@ -27,17 +25,12 @@ export async function joinRoom(
   } else if (nickname.length > NICKNAME_MAX_LENGTH) {
     errors.nickname = `ニックネームは${NICKNAME_MAX_LENGTH}文字以内で入力してください`;
   }
-  if (!password) {
-    errors.password = "参加用パスワードを入力してください";
-  }
-  if (errors.nickname || errors.password) {
+  if (errors.nickname) {
     return { errors, fields: { nickname } };
   }
 
   // TODO: Redis接続後に実装する
-  // - 招待トークンの有効期限チェック
-  // - 参加用パスワードの照合
-  // - 人数上限チェック
+  // - 招待トークンの有効性チェック（更新済みの古いトークンなら入室不可）
   // - 一時ユーザーIDの発行とCookie保存
   // - チャットルームへリダイレクト
   return { message: "入室処理はまだ実装されていません（ダミー）" };

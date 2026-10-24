@@ -35,7 +35,7 @@ export default async function JoinPage({
             入室します
           </CardTitle>
           <CardDescription>
-            ニックネームと参加用パスワードを入力してください
+            チャットで表示するニックネームを入力してください
           </CardDescription>
         </CardHeader>
         <JoinForm />
