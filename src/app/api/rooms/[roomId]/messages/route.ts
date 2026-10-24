@@ -1,64 +1,89 @@
 import { NextResponse } from "next/server";
-import {
-  addMember,
-  getRoom,
-  listMessages,
-  pushMessage,
-} from "@/lib/dev-store";
-import type { ApiErrorCode, MessagesResponse } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import { getMessageRoom, listMessages, pushMessage } from "@/lib/dev-store";
+import type { ApiErrorCode, MessagesResponse, RoomInfo } from "@/lib/types";
 
-/**
- * 仮実装：guestId / nickname をクライアントから受け取る。
- * 本番では署名付きCookieから getActor() で取得する（なりすまし防止）。
- */
-
-type Ctx = { params: Promise<{ roomId: string }> }; // Next.js 16: params は Promise
-
+type Ctx = { params: Promise<{ roomId: string }> };
 const MAX_BODY = 1000;
 
 function fail(code: ApiErrorCode, status: number) {
   return NextResponse.json({ error: code }, { status });
 }
 
-export async function GET(req: Request, { params }: Ctx) {
+async function getAuthorizedRoom(roomId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: fail("NOT_MEMBER", 401) };
+
+  const { data: allowed, error: allowedError } = await supabase.rpc(
+    "is_active_room_member",
+    { p_room_id: roomId, p_user_id: user.id },
+  );
+  if (allowedError || !allowed) return { error: fail("NOT_MEMBER", 403) };
+
+  const { data: room, error: roomError } = await supabase
+    .from("rooms")
+    .select("id, name, max_members, starts_at, expires_at")
+    .eq("id", roomId)
+    .maybeSingle();
+  if (roomError || !room) return { error: fail("ROOM_GONE", 404) };
+
+  const { data: members, error: membersError } = await supabase
+    .from("room_members")
+    .select("user_id, nickname")
+    .eq("room_id", roomId)
+    .is("kicked_at", null);
+  if (membersError) return { error: fail("NOT_MEMBER", 403) };
+
+  const roomInfo: RoomInfo = {
+    id: room.id,
+    name: room.name,
+    maxMembers: room.max_members,
+    startsAt: new Date(room.starts_at).getTime(),
+    expiresAt: new Date(room.expires_at).getTime(),
+  };
+  const currentMember = members.find((member) => member.user_id === user.id);
+  if (!currentMember) return { error: fail("NOT_MEMBER", 403) };
+  return { supabase, user, room, roomInfo, members, currentMember };
+}
+
+export async function GET(_request: Request, { params }: Ctx) {
   const { roomId } = await params;
-  const url = new URL(req.url);
-  const guestId = url.searchParams.get("guestId");
-  const nickname = url.searchParams.get("nickname");
-  const cursor = Math.max(0, Number(url.searchParams.get("cursor") ?? 0) || 0);
-
-  if (!guestId || !nickname) return fail("BAD_REQUEST", 400);
-
-  const room = getRoom(roomId);
-  if (!room) return fail("ROOM_GONE", 404);
-  if (!addMember(room, guestId, nickname)) return fail("ROOM_FULL", 403);
-
-  const { messages, nextCursor } = listMessages(room, cursor);
+  const result = await getAuthorizedRoom(roomId);
+  if ("error" in result) return result.error;
+  const cursor = Math.max(
+    0,
+    Number(new URL(_request.url).searchParams.get("cursor") ?? 0) || 0,
+  );
+  const messageRoom = getMessageRoom(roomId, result.roomInfo);
+  const { messages, nextCursor } = listMessages(messageRoom, cursor);
   const body: MessagesResponse = {
     messages,
     nextCursor,
-    memberCount: room.members.size,
-    members: [...room.members].map(([id, name]) => ({ guestId: id, nickname: name })),
-    room: room.info,
+    memberCount: result.members.length,
+    members: result.members.map((member) => ({
+      guestId: member.user_id,
+      nickname: member.nickname,
+    })),
+    room: result.roomInfo,
   };
   return NextResponse.json(body);
 }
 
-export async function POST(req: Request, { params }: Ctx) {
+export async function POST(request: Request, { params }: Ctx) {
   const { roomId } = await params;
-  const json = await req.json().catch(() => null);
-  const guestId = json?.guestId as string | undefined;
-  const nickname = json?.nickname as string | undefined;
-  const text = (json?.body as string | undefined)?.trim();
+  const result = await getAuthorizedRoom(roomId);
+  if ("error" in result) return result.error;
+  const json = await request.json().catch(() => null);
+  const text = typeof json?.body === "string" ? json.body.trim() : "";
+  if (!text || text.length > MAX_BODY) return fail("BAD_REQUEST", 400);
 
-  if (!guestId || !nickname || !text || text.length > MAX_BODY) {
-    return fail("BAD_REQUEST", 400);
-  }
-
-  const room = getRoom(roomId);
-  if (!room) return fail("ROOM_GONE", 404);
-  if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
-
-  const msg = pushMessage(room, guestId, nickname, text);
-  return NextResponse.json(msg, { status: 201 });
+  const messageRoom = getMessageRoom(roomId, result.roomInfo);
+  const message = pushMessage(
+    messageRoom,
+    result.user.id,
+    result.currentMember.nickname,
+    text,
+  );
+  return NextResponse.json(message, { status: 201 });
 }

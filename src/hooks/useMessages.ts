@@ -48,9 +48,12 @@ export function useMessages(roomId: string, me: Identity | null) {
 
   useEffect(() => {
     if (!me) return;
-    fetchNew();
+    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
     const t = setInterval(fetchNew, POLL_MS);
-    return () => clearInterval(t);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(t);
+    };
   }, [fetchNew, me]);
 
   const send = useCallback(

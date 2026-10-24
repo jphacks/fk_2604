@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Member, Message, MessagesResponse, RoomInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { createClient as createSupabaseClient } from "@/lib/supabase/browser";
 
 /* ============================================================
  * chats.tsx：チャット画面（S-09）に必要な機能をすべて集約したファイル
@@ -20,7 +21,6 @@ import { cn } from "@/lib/utils";
 type Identity = Member;
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
-const STORAGE_KEY = "ephemeral-chat:identity";
 const POLL_MS = 2500; // 新着を取りに行く間隔
 
 /* ---------- 2. 小さな関数 ---------- */
@@ -72,26 +72,21 @@ export function Chats({ roomId }: { roomId: string }) {
   const composing = useRef(false); // 日本語変換中のEnterを送信と誤認しないため
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // --- ブラウザに保存した一時ID＋ニックネームを読み込む ---
-  // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
-  // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) setMe(JSON.parse(saved));
-    } catch {}
-    setReady(true);
+    const supabase = createSupabaseClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setMe({ guestId: data.user.id, nickname: "" });
+      }
+      setReady(true);
+    });
   }, []);
 
   // --- 新着メッセージの取得 ---
   const fetchNew = useCallback(async () => {
     if (!me || fetching.current) return;
     fetching.current = true;
-    const qs = new URLSearchParams({
-      guestId: me.guestId,
-      nickname: me.nickname,
-      cursor: String(cursor.current),
-    });
+    const qs = new URLSearchParams({ cursor: String(cursor.current) });
     try {
       const res = await fetch(`/api/rooms/${roomId}/messages?${qs}`, {
         cache: "no-store",
@@ -104,6 +99,12 @@ export function Chats({ roomId }: { roomId: string }) {
       setRoom(data.room);
       setMemberCount(data.memberCount);
       setMembers(data.members);
+      const currentMember = data.members.find(
+        (member) => member.guestId === me.guestId,
+      );
+      if (currentMember && currentMember.nickname !== me.nickname) {
+        setMe(currentMember);
+      }
       setStatus("ok");
       if (data.messages.length > 0) {
         setMessages((prev) => {
@@ -121,9 +122,12 @@ export function Chats({ roomId }: { roomId: string }) {
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
     if (!me) return;
-    fetchNew();
+    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
     const t = setInterval(fetchNew, POLL_MS);
-    return () => clearInterval(t);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(t);
+    };
   }, [fetchNew, me]);
 
   // カウントダウン用に1秒ごとに現在時刻を更新
@@ -169,7 +173,6 @@ export function Chats({ roomId }: { roomId: string }) {
             const nickname = nameInput.trim();
             if (!nickname) return;
             const identity = { guestId: crypto.randomUUID(), nickname };
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
             setMe(identity);
           }}
         >
