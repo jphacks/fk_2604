@@ -16,7 +16,7 @@ export type CreateRoomState = {
     name: string;
   };
   created?: {
-    roomId: string;
+    inviteToken: string;
     inviteUrl: string;
   };
 };
@@ -44,7 +44,9 @@ export async function createRoom(
   // TODO: Supabase / Redis 接続後に差し替える
   // - ログイン中の管理者IDを owner として保存
   // - 招待トークンを発行（毎日0:00 JSTで更新。古いトークンでは入室不可）
-  const room = createDevRoom(name, startDate, endOfDayJst(endDate));
+  //   入室画面は Supabase の room_invites でトークンを照合するため、
+  //   ここで issue_room_invite を呼ぶまでは「閉じる」の先の入室画面で弾かれる
+  createDevRoom(name, startDate, endOfDayJst(endDate));
   const inviteToken = crypto.randomUUID().replaceAll("-", "");
 
   const h = await headers();
@@ -52,7 +54,7 @@ export async function createRoom(
 
   return {
     created: {
-      roomId: room.id,
+      inviteToken,
       inviteUrl: `${origin}/join/${inviteToken}`,
     },
   };
