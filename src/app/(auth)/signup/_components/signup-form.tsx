@@ -87,6 +87,11 @@ export function SignupForm() {
           {pending ? "登録中…" : "次へ"}
         </Button>
       </CardFooter>
+      {state.message && (
+        <p role="status" className="px-6 pb-4 text-sm text-muted-foreground">
+          {state.message}
+        </p>
+      )}
     </form>
   );
 }
