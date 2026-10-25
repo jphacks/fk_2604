@@ -1,4 +1,5 @@
 import { CloudIcon } from "@/components/brand/cloud-icon";
+import { PageShell } from "@/components/layout/page-shell";
 
 type RoomEndedProps = {
   reason: "gone" | "full";
@@ -19,10 +20,12 @@ const COPY = {
 export function RoomEnded({ reason }: RoomEndedProps) {
   const { title, body } = COPY[reason];
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-paper p-6 text-center text-ink">
-      <CloudIcon className="h-16 w-24 opacity-70" />
-      <h1 className="text-xl font-bold">{title}</h1>
-      <p className="text-sm text-ink-muted">{body}</p>
-    </main>
+    <PageShell>
+      <main className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+        <CloudIcon className="h-16 w-24 opacity-70" />
+        <h1 className="text-xl font-bold">{title}</h1>
+        <p className="text-sm text-ink-muted">{body}</p>
+      </main>
+    </PageShell>
   );
 }

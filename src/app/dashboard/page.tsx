@@ -8,7 +8,7 @@ import {
   RoomCloudList,
   type RoomCloudItem,
 } from "@/components/dashboard/room-cloud-list";
-import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "../(auth)/login/logout-actions";
 
@@ -60,11 +60,10 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="flex min-h-dvh flex-col bg-gradient-to-b from-cloud-pale to-paper text-ink">
-      <AppHeader
-        logoHref="/dashboard"
-        actions={<DashboardActions email={user.email} logoutAction={logout} />}
-      />
+    <PageShell
+      logoHref="/dashboard"
+      actions={<DashboardActions email={user.email} logoutAction={logout} />}
+    >
       <main className="flex-1 px-5 pt-6 pb-16 md:px-12 md:pt-10">
         <h1 className="sr-only">メイン</h1>
         {error ? (
@@ -75,6 +74,6 @@ export default async function DashboardPage() {
           <RoomCloudList rooms={items} />
         )}
       </main>
-    </div>
+    </PageShell>
   );
 }

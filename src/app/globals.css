@@ -88,6 +88,12 @@
   }
 }
 
+/* 全画面共通のページ背景：上が淡い水色、下に向かって paper に溶ける空 */
+@utility bg-sky {
+  background-color: var(--paper);
+  background-image: linear-gradient(to bottom, var(--cloud-pale), var(--paper));
+}
+
 :root {
   /* くもとーくの配色（基準の3色：#96D9D9 / #F7F8F0 / #355872） */
   --ink: #355872;

@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageShell } from "@/components/layout/page-shell";
 import type { RoomPreview } from "@/types/room";
 import { JoinForm } from "./_components/join-form";
 
@@ -36,20 +37,22 @@ export default async function JoinPage({
   const { inviteToken } = await params;
   const room = await getRoomPreview(inviteToken);
   return (
-    <main className="flex flex-1 items-center justify-center bg-muted/40 px-4 py-12">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="border-b text-center">
-          <CardTitle className="text-lg">
-            <span className="font-semibold">{room.name}</span>
-            <span className="text-muted-foreground"> のトークルームに</span>
-            <br />入室します
-          </CardTitle>
-          <CardDescription>
-            チャットで表示するニックネームを入力してください
-          </CardDescription>
-        </CardHeader>
-        <JoinForm inviteToken={inviteToken} />
-      </Card>
-    </main>
+    <PageShell>
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="border-b text-center">
+            <CardTitle className="text-lg">
+              <span className="font-semibold">{room.name}</span>
+              <span className="text-muted-foreground"> のトークルームに</span>
+              <br />入室します
+            </CardTitle>
+            <CardDescription>
+              チャットで表示するニックネームを入力してください
+            </CardDescription>
+          </CardHeader>
+          <JoinForm inviteToken={inviteToken} />
+        </Card>
+      </main>
+    </PageShell>
   );
 }

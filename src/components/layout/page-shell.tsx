@@ -1,0 +1,21 @@
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { AppHeader } from "./app-header";
+
+type PageShellProps = {
+  children: ReactNode;
+  /** AppHeader にそのまま渡す */
+  actions?: ReactNode;
+  logoHref?: string;
+  className?: string;
+};
+
+/** 全画面共通の外枠（空のグラデーション背景＋上部固定のヘッダー）。背景・ヘッダーの色はここで統一する */
+export function PageShell({ children, actions, logoHref, className }: PageShellProps) {
+  return (
+    <div className={cn("flex min-h-dvh flex-col bg-sky text-ink", className)}>
+      <AppHeader logoHref={logoHref} actions={actions} />
+      {children}
+    </div>
+  );
+}

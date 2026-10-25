@@ -18,7 +18,7 @@ import { UploadStatus } from "@/components/chat/upload-status";
 import { BottomSheet } from "@/components/common/bottom-sheet";
 import { formatDayLabel, formatMembers, isSameDay } from "@/components/common/format";
 import { InitialAvatar } from "@/components/common/initial-avatar";
-import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { ExpiryDate } from "@/components/room/expiry-date";
 import { RoomEnded } from "@/components/room/room-ended";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -201,35 +201,34 @@ export function Chats({
   );
 
   return (
-    <div className="flex h-dvh flex-col bg-paper text-ink">
-      {/* ナビゲーション：ロゴ／設定（管理者のみ）・退室 */}
-      <AppHeader
-        logoHref={isOwner ? "/dashboard" : undefined}
-        actions={
-          <>
-            {/* 管理者のみ：歯車アイコンからトークルームの設定へ */}
-            {isOwner && (
-              <Link
-                href={`/rooms/${roomId}/settings`}
-                aria-label="トークルームの設定"
-                title="トークルームの設定"
-                className="flex size-10 items-center justify-center rounded-full hover:bg-cloud-pale"
-              >
-                <Settings className="size-5" />
-              </Link>
-            )}
-            {/* 管理者→ダッシュボード、ゲスト→トップ（退室確認は今後） */}
+    // ナビゲーション：ロゴ／設定（管理者のみ）・退室。画面の高さに固定し、メッセージ一覧だけをスクロールする
+    <PageShell
+      className="h-dvh"
+      logoHref={isOwner ? "/dashboard" : undefined}
+      actions={
+        <>
+          {/* 管理者のみ：歯車アイコンからトークルームの設定へ */}
+          {isOwner && (
             <Link
-              href={isOwner ? "/dashboard" : "/"}
-              className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-pale"
+              href={`/rooms/${roomId}/settings`}
+              aria-label="トークルームの設定"
+              title="トークルームの設定"
+              className="flex size-10 items-center justify-center rounded-full hover:bg-cloud-soft"
             >
-              <LogOut className="size-5" aria-hidden />
-              退室
+              <Settings className="size-5" />
             </Link>
-          </>
-        }
-      />
-
+          )}
+          {/* 管理者→ダッシュボード、ゲスト→トップ（退室確認は今後） */}
+          <Link
+            href={isOwner ? "/dashboard" : "/"}
+            className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-soft"
+          >
+            <LogOut className="size-5" aria-hidden />
+            退室
+          </Link>
+        </>
+      }
+    >
       <div className="flex min-h-0 flex-1">
         {/* 左サイドバー（PCのみ） */}
         <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-line bg-card px-5 py-6 md:block">
@@ -452,6 +451,6 @@ export function Chats({
       >
         {memberPanel}
       </BottomSheet>
-    </div>
+    </PageShell>
   );
 }
