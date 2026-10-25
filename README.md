@@ -3,6 +3,8 @@
 <!-- メインとなる画像に差し替える予定 -->
 
 [![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2026/07/IMG_5316.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
+<img width="2854" height="1667" alt="image" src="https://github.com/user-attachments/assets/91658862-402c-4a6a-928a-04b51b046f9d" />
+
 
 ## 製品概要
 
@@ -48,7 +50,7 @@
 
 <!-- 仮の画像: ルーム作成画面（カレンダーで利用期間を選ぶところ） -->
 <p align="center">
-  <img src="docs/images/scs_create-room.png" alt="新規ルーム作成画面。カレンダーで10月25日〜10月30日の利用期間を選んでいる" width="360">
+  <img src="https://github.com/user-attachments/assets/65a74036-0afa-47b3-b1b3-8625fbdff291" alt="新規ルーム作成画面。カレンダーで10月25日〜10月30日の利用期間を選んでいる" width="2863" />
 </p>
 
 - **そもそも残さない設計**
@@ -61,6 +63,8 @@
 チャット画面には、ルームが消えるまでの残り時間を表示します。あとどれくらい会話できるのかが一目でわかります。
 
 <!-- 画像: チャット画面（カウントダウン） -->
+<img width="2863" height="1690" alt="image" src="https://github.com/user-attachments/assets/f93b2abf-7e4b-4094-983d-7ee640f77a46" />
+
 
 #### 2. アカウント登録なしで、QRコードからすぐ参加できる
 
@@ -70,6 +74,8 @@
 メールアドレスやパスワードの登録、友だち追加は必要ありません。一時的なグループのために連絡先を交換しなくてよいので、「この人誰だっけ？」という連絡先も増えません。
 
 <!-- 画像: 入室画面（ニックネームの入力） -->
+<img width="2871" height="1687" alt="image" src="https://github.com/user-attachments/assets/47b3cfa3-b922-46e5-a934-987baec320af" />
+
 
 - **QRコードで、その場にいるメンバーにすぐ共有**
 
