@@ -89,15 +89,15 @@
 }
 
 :root {
-  /* くもとーくの配色（基準の3色：#96D9D9 / #F7F8F0 / #355872） */
+  /* くもとーくの配色（基準の3色：#96D9D9 / #F8FBFA / #355872） */
   --ink: #355872;
   --ink-muted: #527085;
   --cloud: #96d9d9;
   --cloud-strong: #80cfcf;
   --cloud-soft: #cdeeee;
   --cloud-pale: #e9f7f6;
-  --paper: #f7f8f0;
-  --line: #e3e8ea;
+  --paper: #f8fbfa; /* 背景は単色。水色の雲や吹き出しが埋もれないよう、ほぼ白にする */
+  --line: #e3edeb;
 
   /* shadcn/ui の色を、くもとーくの配色に対応させる */
   --background: var(--paper);
