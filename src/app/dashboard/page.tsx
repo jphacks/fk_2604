@@ -68,7 +68,11 @@ export default async function DashboardPage() {
     return {
       id: room.id,
       name: room.name,
+<<<<<<< HEAD
       href: `/rooms/${room.id}`, // 管理者もゲストと同じチャット画面（設定ボタンが出る）
+=======
+      href: `/rooms/${room.id}`,
+>>>>>>> 66835a0eaad5aaf3968ab6e3e40b41dabe0b2bf4
       remainingLabel: formatRemainingDays(expiresAt, now),
       endsToday: expiresAt - now < DAY_MS,
     };
