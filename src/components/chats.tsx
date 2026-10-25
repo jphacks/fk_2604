@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LogOut,
-  NotebookPen,
-  Paperclip,
   SendHorizontal,
   Settings,
   Upload,
@@ -88,7 +86,6 @@ export function Chats({
   const fetching = useRef(false); // 取得の二重実行を防ぐ（同じメッセージが重複するため）
   const composing = useRef(false); // 日本語変換中のEnterを送信と誤認しないため
   const bottomRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null); // 「ファイル共有」ボタン用
 
   // --- 新着メッセージの取得 ---
   const fetchNew = useCallback(async () => {
@@ -203,8 +200,10 @@ export function Chats({
 
   return (
     // ナビゲーション：ロゴ／設定（管理者のみ）・退室。画面の高さに固定し、メッセージ一覧だけをスクロールする
+    // チャットを広く見せるため、ヘッダーは 60px に詰める
     <PageShell
       className="h-dvh"
+      headerClassName="h-[60px] md:h-[60px]"
       logoHref={isOwner ? "/dashboard" : undefined}
       actions={
         <>
@@ -267,39 +266,37 @@ export function Chats({
             </div>
           )}
 
-          {/* ルーム情報：ルーム名・人数と参加者・消える日 */}
-          <header className="bg-card px-5 pt-4 pb-5 md:px-8">
-            <div className="mx-auto max-w-3xl">
-              <h1 className="truncate text-2xl font-bold md:text-[28px]">
+          {/* ルーム情報：ルーム名・消える日時（スマホは人数と参加者も）。チャットを広く見せるため細く収める
+              スマホ：1行目「ルーム名｜参加者ボタン」、2行目「人数と参加者｜消える日時」
+              PC　　：参加者は左の欄にあるので出さず、「ルーム名｜消える日時」の1行だけ */}
+          <header className="border-b border-line bg-card px-5 py-2 md:px-8">
+            <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
+              <h1 className="truncate text-lg font-bold leading-snug">
                 {room?.name ?? "読み込み中…"}
               </h1>
-              <div className="mt-2 flex items-center gap-3">
-                <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">
-                  {formatMembers(memberCount, room?.maxMembers)}
-                  <span className="ml-3">{joinNames(participants)}</span>
-                </p>
-                {/* スマホ：サイドバーがないので、ボタンで参加者・共有ファイルを開く */}
-                <button
-                  type="button"
-                  onClick={() => setMembersOpen(true)}
-                  aria-label="参加者と共有ファイル"
-                  className="relative flex size-9 items-center justify-center rounded-full hover:bg-cloud-pale md:hidden"
-                >
-                  <Users className="size-5" />
-                  {files.length > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-cloud px-1 text-[10px] font-bold">
-                      {files.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-              {/* 要件どおり、残り時間ではなく日付で表示する */}
+              {/* スマホ：サイドバーがないので、ボタンで参加者・共有ファイルを開く */}
+              <button
+                type="button"
+                onClick={() => setMembersOpen(true)}
+                aria-label="参加者と共有ファイル"
+                className="relative flex size-8 items-center justify-center justify-self-end rounded-full hover:bg-cloud-pale md:hidden"
+              >
+                <Users className="size-5" />
+                {files.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-cloud px-1 text-[10px] font-bold">
+                    {files.length}
+                  </span>
+                )}
+              </button>
+              <p className="truncate text-xs text-ink-muted md:hidden">
+                {formatMembers(memberCount, room?.maxMembers)}
+                <span className="ml-3">{joinNames(participants)}</span>
+              </p>
+              {/* 要件どおり、残り時間ではなく日時で表示する */}
               <ExpiryDate
                 expiresAt={room?.expiresAt}
                 now={now}
-                className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-cloud-pale px-5 py-3"
-                labelClassName="text-xs"
-                dateClassName="text-2xl font-bold md:text-[28px]"
+                className="rounded-full bg-cloud-pale px-2.5 py-0.5"
               />
             </div>
           </header>
@@ -378,38 +375,6 @@ export function Chats({
                 onCloseError={clearError}
               />
 
-              {/* 消えるノート（準備中）・ファイル共有 */}
-              <div className="mb-3 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  disabled
-                  title="準備中"
-                  className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-cloud-pale text-[15px] disabled:opacity-60"
-                >
-                  <NotebookPen className="size-5" aria-hidden />
-                  消えるノート
-                </button>
-                <button
-                  type="button"
-                  disabled={!!uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-cloud-pale text-[15px] transition hover:bg-cloud-soft disabled:opacity-60"
-                >
-                  <Paperclip className="size-5" aria-hidden />
-                  ファイル共有
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) upload(file);
-                    e.target.value = ""; // 同じファイルをもう一度選べるように空にする
-                  }}
-                />
-              </div>
-
               <div className="flex items-end gap-3">
                 {/* 「＋」メニュー：ファイル共有（消えるノートは準備中） */}
                 <AttachMenu onSelectFile={upload} disabled={!!uploading} />
@@ -441,7 +406,7 @@ export function Chats({
                 </button>
               </div>
 
-              <p className="mt-3 text-center text-xs text-ink-muted">
+              <p className="mt-2 text-center text-[11px] text-ink-muted">
                 期限がくると、会話・ノート・ファイルは消えます。
               </p>
             </div>

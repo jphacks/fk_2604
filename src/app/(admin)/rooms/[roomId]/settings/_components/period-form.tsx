@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { ja } from "react-day-picker/locale";
+import { Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -52,10 +53,10 @@ export function PeriodForm({
     range?.from && (started || !range.to) ? addDays(range.from, MAX_ROOM_DAYS - 1) : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-2" noValidate>
-      <fieldset className="flex flex-col gap-1.5" aria-describedby="period-summary">
-        <legend className="mb-1.5 text-sm font-medium">利用期間</legend>
-        <p className="text-xs text-muted-foreground">
+    <form action={formAction} className="flex flex-col gap-6" noValidate>
+      <fieldset className="flex flex-col gap-2" aria-describedby="period-summary">
+        <legend className="mb-2 text-sm font-bold">利用期間</legend>
+        <p className="text-xs text-ink-muted">
           {started
             ? `開始済みのため、変更できるのは終了日だけです。終了日をクリックして選んでください（開始日から最大${MAX_ROOM_DAYS}日）`
             : `開始日と終了日をクリックして選んでください（最大${MAX_ROOM_DAYS}日）`}
@@ -70,7 +71,8 @@ export function PeriodForm({
             onSelect={(_selected, day) => setRange({ from: range?.from, to: day })}
             defaultMonth={fromDateString(initialEndDate)}
             disabled={[{ before: today }, ...(latestEnd ? [{ after: latestEnd }] : [])]}
-            className="mx-auto rounded-lg border"
+            // 日付を押しやすいよう、ルーム作成と同じくマスを大きくする（標準は --spacing(7)）
+            className="mx-auto rounded-xl border p-3 [--cell-size:--spacing(9)]! md:[--cell-size:--spacing(11)]!"
           />
         ) : (
           <Calendar
@@ -81,13 +83,14 @@ export function PeriodForm({
             resetOnSelect
             defaultMonth={fromDateString(initialStartDate)}
             disabled={[{ before: today }, ...(latestEnd ? [{ after: latestEnd }] : [])]}
-            className="mx-auto rounded-lg border"
+            // 日付を押しやすいよう、ルーム作成と同じくマスを大きくする（標準は --spacing(7)）
+            className="mx-auto rounded-xl border p-3 [--cell-size:--spacing(9)]! md:[--cell-size:--spacing(11)]!"
           />
         )}
         <input type="hidden" name="roomId" value={roomId} />
         <input type="hidden" name="startDate" value={startDate} />
         <input type="hidden" name="endDate" value={endDate} />
-        <p id="period-summary" aria-live="polite" className="text-sm">
+        <p id="period-summary" aria-live="polite" className="text-sm font-bold">
           {startDate
             ? `${formatMonthDay(startDate)}〜${formatMonthDay(endDate)}（${countDays(startDate, endDate)}日間）`
             : "未選択"}
@@ -100,12 +103,17 @@ export function PeriodForm({
         </p>
       )}
       {state.message && !state.error && (
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status" className="text-sm text-ink-muted">
           {state.message}
         </p>
       )}
 
-      <Button type="submit" className="self-end" disabled={pending}>
+      <p className="flex gap-2.5 rounded-xl bg-sun px-5 py-4 text-xs leading-relaxed text-ink-muted">
+        <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+        期限がくると、会話・ノート・ファイルはすべて消えます。終了日を早めると、その日の23:59に消えます。
+      </p>
+
+      <Button type="submit" className="h-12 w-full rounded-xl text-sm font-bold" disabled={pending}>
         {pending ? "保存中…" : "利用期間を保存"}
       </Button>
     </form>

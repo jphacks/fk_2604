@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getRoomHeat } from "@/lib/dev-store";
-import type { RoomHeat, RoomHeatsResponse } from "@/lib/room-heat";
+import { getRoomHeats } from "@/lib/redis-messages";
+import type { RoomHeatsResponse } from "@/lib/room-heat";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -28,11 +28,8 @@ export async function GET() {
     return NextResponse.json({ error: "INTERNAL" }, { status: 500 });
   }
 
-  const heats: Record<string, RoomHeat | null> = {};
-  for (const { id } of data) {
-    // TODO: Redis 接続後は room:{roomId}:heat を読む（MGET でまとめて取ると速い）
-    heats[id] = getRoomHeat(id);
-  }
+  // Redis の chat:room:{roomId}:heat をまとめて読む
+  const heats = await getRoomHeats(data.map((room) => room.id));
 
   const body: RoomHeatsResponse = { heats, now };
   return NextResponse.json(body);

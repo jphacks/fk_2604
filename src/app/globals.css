@@ -21,6 +21,9 @@
   --color-cloud-strong: var(--cloud-strong); /* 主ボタンのホバー */
   --color-cloud-soft: var(--cloud-soft); /* アバター */
   --color-cloud-pale: var(--cloud-pale); /* カード・チップの淡い背景 */
+  --color-cloud-mist: var(--cloud-mist); /* 消えかけの雲（残りわずかなルーム） */
+  --color-cloud-deep: var(--cloud-deep); /* 水色系の小さな見出し（「あなたのチャンネル」など） */
+  --color-sun: var(--sun); /* 太陽の飾り・注意書きの背景 */
   --color-paper: var(--paper); /* ページ背景 */
   --color-line: var(--line); /* 区切り線・枠線 */
 
@@ -89,14 +92,17 @@
 }
 
 :root {
-  /* くもとーくの配色（基準の3色：#96D9D9 / #F8FBFA / #355872） */
-  --ink: #355872;
-  --ink-muted: #527085;
+  /* くもとーくの配色（S-04 / S-08 のデザイン画像に合わせた、水色・ほぼ白・深い青緑） */
+  --ink: #2e4b57;
+  --ink-muted: #5a7380;
   --cloud: #96d9d9;
   --cloud-strong: #80cfcf;
   --cloud-soft: #cdeeee;
-  --cloud-pale: #e9f7f6;
-  --paper: #f8fbfa; /* 背景は単色。水色の雲や吹き出しが埋もれないよう、ほぼ白にする */
+  --cloud-pale: #eaf5f3;
+  --cloud-mist: #edf2ef;
+  --cloud-deep: #37767c;
+  --sun: #fffbd8;
+  --paper: #f8faf9; /* 背景は単色。水色の雲や吹き出しが埋もれないよう、ほぼ白にする */
   --line: #e3edeb;
 
   /* shadcn/ui の色を、くもとーくの配色に対応させる */

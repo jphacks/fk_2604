@@ -1,4 +1,3 @@
-import { addHeat, type RoomHeat } from "./room-heat";
 import type { Message, RoomInfo, SharedFile } from "./types";
 
 /**
@@ -21,8 +20,6 @@ type DevRoom = {
   members: Map<string, string>; // guestId -> nickname
   messages: Message[];
   files: Map<string, StoredFile>; // fileId -> 中身と情報
-  /** 会話の盛り上がり（lib/room-heat.ts）。本番は Redis の room:{roomId}:heat */
-  heat?: RoomHeat;
 };
 
 const g = globalThis as unknown as { __devRooms?: Map<string, DevRoom> };
@@ -106,20 +103,7 @@ export function pushMessage(
   };
   room.messages.push(msg);
   if (room.messages.length > 500) room.messages.shift();
-  // 盛り上がりの点数を +1（ファイル共有のメッセージも1件として数える）
-  room.heat = addHeat(room.heat, msg.sentAt);
   return msg;
-}
-
-/**
- * ルームの盛り上がりの点数（ダッシュボードの雲の大きさに使う）。
- * getRoom() は無いルームを自動作成してしまうので、ここでは rooms.get() で見るだけにする。
- * ルームが無い・期限切れ・まだ点数が無いときは null
- */
-export function getRoomHeat(roomId: string): RoomHeat | null {
-  const room = rooms.get(roomId);
-  if (!room || room.info.expiresAt <= Date.now()) return null;
-  return room.heat ?? null;
 }
 
 /** cursor（配列の添字）以降のメッセージを返す */
