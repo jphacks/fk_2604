@@ -72,7 +72,9 @@ export function RoomCreateForm() {
         <fieldset className="flex flex-col gap-2" aria-describedby="period-summary">
           <legend className="mb-2 text-sm font-bold">利用期間</legend>
           <p className="text-xs text-ink-muted">
-            開始日と終了日をクリックして選んでください（最大{MAX_ROOM_DAYS}日）。終了日の23:59にルームは消えます
+            開始日と終了日をクリックして選んでください（最大{MAX_ROOM_DAYS}日）。
+            <br />
+            終了日の23:59にルームは消えます
           </p>
           <Calendar
             mode="range"

@@ -6,8 +6,8 @@ type AppHeaderProps = {
   /** 右側に置くもの（退室ボタン・設定ボタン・「管理者」表示など） */
   actions?: ReactNode;
   logoHref?: string;
-  /** ロゴをアイコンだけにする（チャット画面など、ヘッダーを広く使いたいとき） */
-  logoIconOnly?: boolean;
+  /** ロゴを小さめにする（チャット画面など、ヘッダーを詰めたいとき） */
+  logoCompact?: boolean;
   /** 中央に置くもの（チャット画面のルーム名など）。指定するとロゴ／中央／操作の3列になる */
   center?: ReactNode;
   className?: string;
@@ -17,7 +17,7 @@ type AppHeaderProps = {
 export function AppHeader({
   actions,
   logoHref,
-  logoIconOnly,
+  logoCompact,
   center,
   className,
 }: AppHeaderProps) {
@@ -31,7 +31,7 @@ export function AppHeader({
         className,
       )}
     >
-      <Logo href={logoHref} iconOnly={logoIconOnly} />
+      <Logo href={logoHref} compact={logoCompact} />
       {center && <div className="min-w-0 text-center">{center}</div>}
       {actions && (
         <div className="flex items-center gap-4 justify-self-end">{actions}</div>

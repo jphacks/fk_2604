@@ -196,13 +196,13 @@ export function Chats({
   );
 
   return (
-    // ナビゲーション：雲のアイコン／ルーム名・消える日時／パネル開閉・設定（管理者のみ）・退室
+    // ナビゲーション：ロゴ（小さめ）／ルーム名・消える日時／パネル開閉・設定（管理者のみ）・退室
     // 画面の高さに固定し、メッセージ一覧だけをスクロールする。チャットを広く見せるため、ヘッダーは 60px に詰める
     <PageShell
       className="h-dvh"
       headerClassName="h-[60px] md:h-[60px] md:px-8"
       logoHref={isOwner ? "/dashboard" : undefined}
-      logoIconOnly
+      logoCompact
       headerCenter={
         <>
           <h1 className="truncate text-base font-bold leading-snug md:text-lg">
