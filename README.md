@@ -1,8 +1,12 @@
-# サンプル（プロダクト名）
+# くもとーく
+
+<!-- メインとなる画像に差し替える予定 -->
 
 [![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2026/07/IMG_5316.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
 
 ## 製品概要
+
+<!-- 動画を挿入予定 -->
 
 ### コミュニケーション × Tech
 
