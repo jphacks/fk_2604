@@ -101,7 +101,8 @@ export function RoomSidePanel({
             />
           </Card>
           {selected && (
-            <Card title="ファイルプレビュー" className="min-h-72 flex-1">
+            // 高さはファイルの中身に合わせる（入りきらないときだけ縮んで、枠の中でスクロール）
+            <Card title="ファイルプレビュー">
               <FilePreview
                 key={selected.id}
                 file={selected}
@@ -113,7 +114,7 @@ export function RoomSidePanel({
         </>
       )}
 
-      <p className="shrink-0 text-[11px] leading-relaxed text-ink-muted">
+      <p className="mt-auto shrink-0 text-[11px] leading-relaxed text-ink-muted">
         期限がくると、会話・ファイルは、この雲と一緒に消えます。
       </p>
     </div>

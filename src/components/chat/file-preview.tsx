@@ -94,21 +94,22 @@ export function FilePreview({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex max-h-full min-h-0 flex-col gap-3">
       <div className="flex items-center gap-2">
         <FileTypeIcon file={file} className="size-4 shrink-0 text-ink-muted" />
         <p className="min-w-0 flex-1 truncate text-sm font-semibold">{file.name}</p>
         {download}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-line bg-paper">
+      {/* 枠の高さは中身（画像・テキスト）に合わせる */}
+      <div className="min-h-0 overflow-auto rounded-xl border border-line bg-paper">
         {kind === "image" && (
           // 認証付きのAPIから出す画像なので next/image ではなく img を使う
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={fileUrl(roomId, file.id, guestId)}
             alt={file.name}
-            className="mx-auto max-h-full max-w-full object-contain"
+            className="mx-auto block max-h-full max-w-full object-contain"
           />
         )}
 
