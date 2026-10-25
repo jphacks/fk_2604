@@ -65,7 +65,7 @@ export default async function DashboardPage() {
     return {
       id: room.id,
       name: room.name,
-      href: `/rooms/${room.id}/admin`, // 管理者用チャット
+      href: `/rooms/${room.id}`,
       remainingLabel: formatRemainingDays(expiresAt, now),
       endsToday: expiresAt - now < DAY_MS,
     };
