@@ -170,8 +170,10 @@ export function RoomCloud({
           } as CSSProperties
         }
       >
-        {/* 雲の形と中身。残り時間はこの下に置く */}
-        <div className="relative">
+        {/* 雲の形と中身。残り時間はこの下に置く
+            雲にマウスを乗せる（キーボードで選ぶ）と、ふんわり少し大きくなる。
+            ただよう動き（transform）とぶつからないよう、拡大は内側のこの枠でかける */}
+        <div className="relative transition-transform duration-500 ease-out motion-safe:group-has-[a:hover]:scale-[1.05] motion-safe:group-has-[a:focus-visible]:scale-[1.05]">
           <CloudBubble outline className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))] transition-[color,filter] duration-700 group-has-[a:hover]:brightness-[0.97]" />
 
           {/* 消えるとき（gone）だけ、雲のまわりに粒が散る */}
@@ -190,15 +192,15 @@ export function RoomCloud({
           </span>
 
           {fading && (
-            // 右端からこぼれる小さな雲の粒（雲本体と同じく白でふちどる）
+            // 右端からこぼれる小さな雲の粒（雲本体と同じく、白いふちをぼかしてつける）
             <span
               aria-hidden
               className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))]"
             >
-              <span className="absolute top-[42%] -right-[4%] size-[6%] rounded-full bg-current ring-[1.5px] ring-white" />
-              <span className="absolute top-[60%] -right-[1%] size-[4.5%] rounded-full bg-current ring-[1.5px] ring-white" />
-              <span className="absolute top-[47%] -right-[9%] size-[2.5%] rounded-full bg-current ring-[1.5px] ring-white" />
-              <span className="absolute top-[72%] right-[3%] size-[2%] rounded-full bg-current ring-[1.5px] ring-white" />
+              <span className="absolute top-[42%] -right-[4%] size-[6%] rounded-full bg-current shadow-[0_0_4px_2px_rgb(255_255_255/0.75)]" />
+              <span className="absolute top-[60%] -right-[1%] size-[4.5%] rounded-full bg-current shadow-[0_0_4px_2px_rgb(255_255_255/0.75)]" />
+              <span className="absolute top-[47%] -right-[9%] size-[2.5%] rounded-full bg-current shadow-[0_0_4px_2px_rgb(255_255_255/0.75)]" />
+              <span className="absolute top-[72%] right-[3%] size-[2%] rounded-full bg-current shadow-[0_0_4px_2px_rgb(255_255_255/0.75)]" />
             </span>
           )}
 
