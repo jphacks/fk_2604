@@ -199,5 +199,20 @@
 
 #### ハッカソンで開発した独自機能・技術
 
-- 独自で開発したものの内容をこちらに記載してください
-- 特に力を入れた部分をファイルリンク、またはcommit_idを記載してください。
+「消える」ことを、グループ・メッセージ・連絡先の3つで実現するために、次の仕組みを独自に設計・実装しました。
+
+- アプリケーションの画面や画面遷移等
+  - **[雲で表示するルーム一覧（会話の盛り上がりで大きさ、残り時間で濃さが変わる）](https://github.com/jphacks/fk_2604/blob/main/src/components/dashboard/room-cloud.tsx)**
+  - [ルーム作成（カレンダーで利用期間を選ぶ）](https://github.com/jphacks/fk_2604/blob/main/src/app/%28admin%29/rooms/new/_components/room-create-form.tsx)
+  - [共有URLとQRコードの表示](https://github.com/jphacks/fk_2604/blob/main/src/app/%28admin%29/rooms/new/_components/share-url-dialog.tsx)
+- アプリケーション本体の処理
+  - **[毎日0:00に切り替わる招待URL](https://github.com/jphacks/fk_2604/blob/main/src/lib/invite.ts)**（HMAC-SHA256）
+    - 「ルームID＋日本時間の日付」を秘密鍵で署名してURLを作るため、定期実行（cron）なしで毎日新しいURLになります。
+    - DBにはトークンそのものではなくハッシュ値（SHA-256）だけを保存します。
+  - **[メッセージの自動消滅](https://github.com/jphacks/fk_2604/blob/main/src/lib/redis-messages.ts)**（Upstash Redis）
+    - メッセージは Supabase に保存せず、ルームの終了日時を期限（`EXPIREAT`）にして Redis にだけ保存します。
+  - **[会話の盛り上がりの計算](https://github.com/jphacks/fk_2604/blob/main/src/lib/room-heat.ts)**
+    - 「点数」と「更新時刻」の2つだけを保存する減衰スコアです。時間がたつと半分になるため、定期的に点数を減らす処理が要りません。
+  - [利用期間のルール（日付・最大31日・終了日の23:59:59に消える）](https://github.com/jphacks/fk_2604/blob/main/src/lib/room-period.ts)
+  - [登録なしで参加する人の確認](https://github.com/jphacks/fk_2604/tree/main/supabase/migrations)（Supabase の匿名認証・RLS）
+    - 入室時の処理は[こちら](https://github.com/jphacks/fk_2604/blob/main/src/app/%28guest%29/join/%5BinviteToken%5D/actions.ts)
