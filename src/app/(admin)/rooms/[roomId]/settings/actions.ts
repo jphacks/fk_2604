@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAal2 } from "@/lib/admin-authorization";
 import {
   endOfDayJst,
   formatMonthDay,
@@ -24,9 +23,7 @@ export async function updateRoomPeriod(
   const startDate = String(formData.get("startDate") ?? "");
   const endDate = String(formData.get("endDate") ?? "");
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.is_anonymous) redirect("/login");
+  const { supabase, user } = await requireAdminAal2();
 
   const { data: room } = await supabase
     .from("rooms")

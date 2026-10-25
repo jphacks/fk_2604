@@ -66,5 +66,5 @@ export async function signup(
       message: "確認メールを送信しました。メールアドレスを確認してからログインしてください",
     };
   }
-  redirect("/dashboard");
+  redirect("/signup/totp");
 }

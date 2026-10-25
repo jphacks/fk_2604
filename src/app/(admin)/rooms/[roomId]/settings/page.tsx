@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { logout } from "@/app/(auth)/login/logout-actions";
@@ -9,7 +9,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { getDisplayName } from "@/lib/display-name";
 import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
 import { todayJst, toJstDate } from "@/lib/room-period";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAal2 } from "@/lib/admin-authorization";
 import { PeriodForm } from "./_components/period-form";
 import { ShareUrlSection } from "./_components/share-url-section";
 
@@ -22,9 +22,7 @@ export default async function RoomSettingsPage({
 }: PageProps<"/rooms/[roomId]/settings">) {
   const { roomId } = await params;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.is_anonymous) redirect("/login");
+  const { supabase, user } = await requireAdminAal2();
 
   // ルームの作成者だけが開ける（それ以外・消滅済みは 404）
   const { data: room } = await supabase
