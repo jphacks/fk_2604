@@ -9,6 +9,7 @@ import type { Message, RoomInfo } from "./types";
  */
 type DevRoom = {
   info: RoomInfo;
+  startDate?: string; // 利用期間の開始日 "YYYY-MM-DD"（期限延長で最大日数を判定するのに使う）
   members: Map<string, string>; // guestId -> nickname
   messages: Message[];
 };
@@ -37,6 +38,18 @@ export function getRoom(roomId: string): DevRoom | null {
     return null; // 期限切れ＝消滅
   }
   return room;
+}
+
+/** ルーム作成（新規ルーム作成画面から呼ぶ）。人数上限なし */
+export function createRoom(name: string, startDate: string, expiresAt: number): RoomInfo {
+  const info: RoomInfo = {
+    id: crypto.randomUUID(),
+    name,
+    maxMembers: null,
+    expiresAt,
+  };
+  rooms.set(info.id, { info, startDate, members: new Map(), messages: [] });
+  return info;
 }
 
 /** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
