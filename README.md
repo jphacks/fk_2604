@@ -4,6 +4,8 @@
 
 [![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2026/07/IMG_5316.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
 <img width="2854" height="1667" alt="image" src="https://github.com/user-attachments/assets/91658862-402c-4a6a-928a-04b51b046f9d" />
+<img width="3840" height="2160" alt="アプリ概要" src="https://github.com/user-attachments/assets/49d4e5fb-0550-4132-8dbf-c15ea859fb68" />
+
 
 
 ## 製品概要
