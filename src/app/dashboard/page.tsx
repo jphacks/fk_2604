@@ -106,10 +106,10 @@ export default async function DashboardPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-5 pt-8 pb-16 md:px-12 md:pt-12">
         <div className="mb-8 flex flex-col gap-5 md:mb-10 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-bold tracking-wide text-cloud-deep md:text-sm">あなたのチャンネル</p>
+            <p className="text-xs font-bold tracking-wide text-cloud-deep md:text-sm">参加中のくもとーく</p>
             <h1 className="text-2xl font-bold break-all md:text-[32px]">こんにちは、{displayName}さん。</h1>
             {!error && items.length > 0 && (
-              <p className="text-sm text-ink-muted">いま集まれる雲が、{items.length}つ浮かんでいます。</p>
+              <p className="text-sm text-ink-muted">参加できるチャットが{items.length}つあります。</p>
             )}
           </div>
           {!error && items.length > 0 && <CreateRoomLink className="self-start md:self-auto" />}
