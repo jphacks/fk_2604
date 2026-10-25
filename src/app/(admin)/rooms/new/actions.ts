@@ -10,7 +10,7 @@ import { ROOM_NAME_MAX_LENGTH } from "./constants";
 export type CreateRoomState = {
   errors?: { name?: string; period?: string };
   fields?: { name: string };
-  created?: { roomId: string; inviteUrl: string };
+  created?: { roomId: string; inviteToken: string; inviteUrl: string };
   message?: string;
 };
 
@@ -72,5 +72,7 @@ export async function createRoom(
   const origin =
     requestHeaders.get("origin") ??
     `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host")}`;
-  return { created: { roomId: room.id, inviteUrl: `${origin}/join/${inviteToken}` } };
+  return {
+    created: { roomId: room.id, inviteToken, inviteUrl: `${origin}/join/${inviteToken}` },
+  };
 }
