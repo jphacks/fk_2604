@@ -58,11 +58,14 @@ async function authorize(roomId: string) {
     .is("kicked_at", null);
   if (membersError) return { response: fail("SERVICE_UNAVAILABLE", 503) } as const;
 
+  // 管理者が招待URLから入室していた場合も、一覧では「管理者」として1回だけ出す
+  const guests = (members ?? []).filter((member) => member.user_id !== room.owner_id);
+
   return {
     user,
     room,
     nickname: isOwner ? "管理者" : membership?.nickname ?? "",
-    members: members ?? [],
+    members: guests,
     messageRoom: getMessageRoom(roomId, room.expires_at),
   } as const;
 }
@@ -83,11 +86,16 @@ export async function GET(req: Request, { params }: Ctx) {
     const body: MessagesResponse = {
       messages,
       nextCursor,
-      memberCount: authorized.members.length,
-      members: authorized.members.map((member) => ({
-        guestId: member.user_id,
-        nickname: member.nickname,
-      })),
+      // 管理者は room_members に入らないので、ゲストにも参加しているとわかるよう先頭に足す
+      // （ゲストは管理者のプロフィールを読めないため、名前はメッセージと同じ「管理者」）
+      memberCount: authorized.members.length + 1,
+      members: [
+        { guestId: authorized.room.owner_id, nickname: "管理者" },
+        ...authorized.members.map((member) => ({
+          guestId: member.user_id,
+          nickname: member.nickname,
+        })),
+      ],
       room: {
         id: authorized.room.id,
         name: authorized.room.name,
