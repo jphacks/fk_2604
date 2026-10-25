@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Timer } from "lucide-react";
+import type { CloudSize } from "@/lib/room-heat";
 import { cn } from "@/lib/utils";
 
 type RoomCloudProps = {
@@ -9,8 +11,10 @@ type RoomCloudProps = {
   remainingLabel: string;
   /** 今日で消えるルームは残り日数を目立たせる */
   endsToday?: boolean;
-  /** 雲の大きさ（一覧で順番に変えて、空に浮かんでいるように見せる） */
-  size?: "sm" | "md" | "lg";
+  /** 雲の大きさ（会話の盛り上がりで決まる。lib/room-heat.ts） */
+  size?: CloudSize;
+  /** 雲の色の濃さ 0〜1（0＝淡い水色 --cloud-soft、1＝水色 --cloud。会話の盛り上がりで決まる） */
+  tint?: number;
   /** ふわふわ動くタイミングをずらす（秒） */
   floatDelay?: number;
   className?: string;
@@ -29,6 +33,7 @@ export function RoomCloud({
   remainingLabel,
   endsToday = false,
   size = "md",
+  tint = 1,
   floatDelay = 0,
   className,
 }: RoomCloudProps) {
@@ -43,15 +48,20 @@ export function RoomCloud({
           href={href}
           className={cn(
             "group relative block rounded-3xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            // 大きさが変わるときはふわっと変える（動きを減らす設定の人には変えない）
+            "transition-[width] duration-700 ease-out motion-reduce:transition-none",
             SIZE[size],
           )}
+          // 色の濃さを CSS変数で渡し、下の svg の color-mix で淡い水色と水色を混ぜる
+          // （白だと背景に溶けて見えないので、静かなルームも淡い水色にする）
+          style={{ "--cloud-tint": `${Math.round(tint * 100)}%` } as CSSProperties}
         >
           {/* brand/cloud-icon.tsx と同じ雲の形 */}
           <svg
             viewBox="0 0 32 22"
             fill="currentColor"
             aria-hidden
-            className="w-full text-cloud drop-shadow-[0_6px_12px_rgb(53_88_114/0.12)] transition-colors group-hover:text-cloud-strong"
+            className="w-full text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-soft))] drop-shadow-[0_6px_12px_rgb(53_88_114/0.12)] transition-[color,filter] duration-700 group-hover:brightness-95"
           >
             <path d="M8.5 22A7.5 7.5 0 0 1 7.4 7.1 9 9 0 0 1 24.2 6a8 8 0 0 1 .3 16Z" />
           </svg>
