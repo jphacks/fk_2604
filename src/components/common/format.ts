@@ -24,3 +24,9 @@ export function formatDayLabel(ms: number, now: number) {
 export function formatMembers(count: number, max?: number | null) {
   return max ? `${count} / ${max}人` : `${count}人`;
 }
+
+/** ルームの残り日数：「あと3日」。1日未満は「今日まで」 */
+export function formatRemainingDays(expiresAt: number, now: number) {
+  const days = Math.floor((expiresAt - now) / DAY_MS);
+  return days >= 1 ? `あと${days}日` : "今日まで";
+}
