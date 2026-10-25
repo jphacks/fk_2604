@@ -50,9 +50,7 @@
 
 <!-- 仮の画像: ルーム作成画面（カレンダーで利用期間を選ぶところ） -->
 <p align="center">
-  <img src="docs/images/scs_create-room.png" alt="新規ルーム作成画面。カレンダーで10月25日〜10月30日の利用期間を選んでいる" width="360">
   <img src="https://github.com/user-attachments/assets/65a74036-0afa-47b3-b1b3-8625fbdff291" alt="新規ルーム作成画面。カレンダーで10月25日〜10月30日の利用期間を選んでいる" width="360" />
-
 </p>
 
 - **そもそも残さない設計**
