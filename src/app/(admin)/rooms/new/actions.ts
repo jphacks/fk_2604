@@ -1,8 +1,7 @@
 "use server";
 
-import { createHash, randomBytes } from "node:crypto";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
 import { createClient } from "@/lib/supabase/server";
 import { endOfDayJst, validateRoomPeriod } from "@/lib/room-period";
 import { ROOM_NAME_MAX_LENGTH } from "./constants";
@@ -56,23 +55,16 @@ export async function createRoom(
     return { message: "ルームを作成できませんでした", fields: { name } };
   }
 
-  const inviteToken = randomBytes(32).toString("base64url");
-  const tokenHash = createHash("sha256").update(inviteToken).digest("hex");
-  const { error: inviteError } = await supabase.rpc("issue_room_invite", {
-    p_room_id: room.id,
-    p_token_hash: tokenHash,
-    p_expires_at: expiresAt,
-  });
-  if (inviteError) {
+  // 今日の招待URL（次の0:00まで有効）。設定画面と同じ方式なので、同じ日なら同じURLになる
+  let inviteToken: string;
+  try {
+    inviteToken = await ensureTodayInvite(supabase, room.id, Date.parse(expiresAt));
+  } catch {
     await supabase.from("rooms").delete().eq("id", room.id);
     return { message: "招待URLを発行できませんでした", fields: { name } };
   }
 
-  const requestHeaders = await headers();
-  const origin =
-    requestHeaders.get("origin") ??
-    `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host")}`;
   return {
-    created: { roomId: room.id, inviteToken, inviteUrl: `${origin}/join/${inviteToken}` },
+    created: { roomId: room.id, inviteToken, inviteUrl: await inviteUrlFor(inviteToken) },
   };
 }
