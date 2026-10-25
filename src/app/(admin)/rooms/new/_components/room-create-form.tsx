@@ -88,6 +88,13 @@ export function RoomCreateForm() {
               <p className="text-sm text-destructive">{state.errors.period}</p>
             )}
           </fieldset>
+
+          {/* 入力は正しいが、ルームの作成や招待URLの発行に失敗したとき */}
+          {state.message && (
+            <p role="alert" className="text-sm text-destructive">
+              {state.message}
+            </p>
+          )}
         </CardContent>
 
         <CardFooter className="justify-end">
