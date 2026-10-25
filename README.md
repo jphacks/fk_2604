@@ -155,7 +155,7 @@
   - 受け取った相手はファイルのダウンロードやプレビューが可能です。
   - 1ファイル10MBまで、1ルームの合計は50MBまで共有できます。ファイルもルームの終了後に削除されます。
 
-      <img src="docs/images/share-file.png" alt="ファイル共有の画面" width="2871" height="1687">
+      <img src="docs/images/kumotalk_file_share.png" alt="ファイル共有の画面" width="2871" height="1687">
 
 ## 開発技術
 
