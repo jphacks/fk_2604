@@ -20,6 +20,7 @@ import { formatDayLabel, formatMembers, isSameDay } from "@/components/common/fo
 import { InitialAvatar } from "@/components/common/initial-avatar";
 import { AppHeader } from "@/components/layout/app-header";
 import { ExpiryDate } from "@/components/room/expiry-date";
+import { LeaveRoomButton } from "@/components/room/leave-room-button";
 import { RoomEnded } from "@/components/room/room-ended";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { formatTime } from "@/lib/format";
@@ -218,14 +219,18 @@ export function Chats({
                 <Settings className="size-5" />
               </Link>
             )}
-            {/* 管理者→ダッシュボード、ゲスト→トップ（退室確認は今後） */}
-            <Link
-              href={isOwner ? "/dashboard" : "/"}
-              className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-pale"
-            >
-              <LogOut className="size-5" aria-hidden />
-              退室
-            </Link>
+            {/* 管理者→ダッシュボード、ゲスト→退室確認のうえ「退室しました」画面 */}
+            {isOwner ? (
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-pale"
+              >
+                <LogOut className="size-5" aria-hidden />
+                退室
+              </Link>
+            ) : (
+              <LeaveRoomButton roomId={roomId} />
+            )}
           </>
         }
       />
