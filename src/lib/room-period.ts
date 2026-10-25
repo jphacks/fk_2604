@@ -26,6 +26,16 @@ export function todayJst(now = Date.now()): string {
   return new Date(now + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+/** 次の 0:00 JST の epoch ms。招待URLはこの時刻に更新される */
+export function nextMidnightJst(now = Date.now()): number {
+  return Date.parse(`${todayJst(now)}T00:00:00+09:00`) + DAY_MS;
+}
+
+/** DB の日時（ISO文字列）を日本時間の日付 "YYYY-MM-DD" にする */
+export function toJstDate(iso: string): string {
+  return todayJst(Date.parse(iso));
+}
+
 /** 開始日・終了日を含めた日数（10/26〜10/28 なら 3） */
 export function countDays(startDate: string, endDate: string): number {
   return (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / DAY_MS + 1;
@@ -48,6 +58,27 @@ export function validateRoomPeriod(startDate: string, endDate: string): string |
     return "利用期間の日付が正しくありません";
   }
   if (startDate < todayJst()) return "開始日には今日以降の日付を選んでください";
+  return validateEndDate(startDate, endDate);
+}
+
+/**
+ * ルーム設定での利用期間の変更。
+ * 開始済みのルームは開始日を固定し、終了日だけ変えられる（過去の開始日を動かして31日を延ばせないように）
+ */
+export function validateRoomPeriodUpdate(
+  currentStartDate: string,
+  startDate: string,
+  endDate: string,
+): string | undefined {
+  if (currentStartDate > todayJst()) return validateRoomPeriod(startDate, endDate);
+
+  if (startDate !== currentStartDate) return "開始済みのルームは開始日を変更できません";
+  if (!isValidDateString(endDate)) return "終了日を選んでください";
+  if (endDate < todayJst()) return "終了日には今日以降の日付を選んでください";
+  return validateEndDate(startDate, endDate);
+}
+
+function validateEndDate(startDate: string, endDate: string): string | undefined {
   if (endDate < startDate) return "終了日は開始日以降の日付を選んでください";
   if (countDays(startDate, endDate) > MAX_ROOM_DAYS) {
     return `利用期間は最大${MAX_ROOM_DAYS}日までです`;
