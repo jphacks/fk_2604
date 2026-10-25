@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   addMember,
   getRoom,
+  listFiles,
   listMessages,
   pushMessage,
 } from "@/lib/dev-store";
@@ -40,6 +41,7 @@ export async function GET(req: Request, { params }: Ctx) {
     memberCount: room.members.size,
     members: [...room.members].map(([id, name]) => ({ guestId: id, nickname: name })),
     room: room.info,
+    files: listFiles(room),
   };
   return NextResponse.json(body);
 }

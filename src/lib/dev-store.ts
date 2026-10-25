@@ -1,4 +1,4 @@
-import type { Message, RoomInfo } from "./types";
+import type { Message, RoomInfo, SharedFile } from "./types";
 
 /**
  * 開発用のメモリ上ストア（Redis結合までの仮置き）。
@@ -6,12 +6,20 @@ import type { Message, RoomInfo } from "./types";
  * - Next.jsの開発サーバーはファイル更新でモジュールが再読込されるため、
  *   globalThis に載せて状態を保つ
  * 後で lib/redis/ の実装に差し替える。関数名は変えないこと。
+ *
+ * ファイル共有について（要件定義 Q-11）
+ * - いまはファイルの中身もメモリに置いている
+ * - 本番では「中身は Supabase Storage、情報（名前・サイズなど）は Redis の room:{roomId}:files」
+ *   に分ける。差し替えるのは saveFile / getFile の中身だけ
+ * - ルームが消える（期限切れ）とファイルも一緒に消える
  */
+type StoredFile = { meta: SharedFile; data: ArrayBuffer };
+
 type DevRoom = {
   info: RoomInfo;
-  startDate?: string; // 利用期間の開始日 "YYYY-MM-DD"（期限延長で最大日数を判定するのに使う）
   members: Map<string, string>; // guestId -> nickname
   messages: Message[];
+  files: Map<string, StoredFile>; // fileId -> 中身と情報
 };
 
 const g = globalThis as unknown as { __devRooms?: Map<string, DevRoom> };
@@ -30,26 +38,17 @@ export function getRoom(roomId: string): DevRoom | null {
       },
       members: new Map(),
       messages: [],
+      files: new Map(),
     };
     rooms.set(roomId, room);
   }
+  // 古い形（files がない）で残っている開発中のデータに備える
+  room.files ??= new Map();
   if (room.info.expiresAt <= Date.now()) {
-    rooms.delete(roomId);
+    rooms.delete(roomId); // メッセージもファイルもまとめて消える
     return null; // 期限切れ＝消滅
   }
   return room;
-}
-
-/** ルーム作成（新規ルーム作成画面から呼ぶ）。人数上限なし */
-export function createRoom(name: string, startDate: string, expiresAt: number): RoomInfo {
-  const info: RoomInfo = {
-    id: crypto.randomUUID(),
-    name,
-    maxMembers: null,
-    expiresAt,
-  };
-  rooms.set(info.id, { info, startDate, members: new Map(), messages: [] });
-  return info;
 }
 
 /** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
@@ -69,6 +68,7 @@ export function pushMessage(
   senderId: string,
   nickname: string,
   body: string,
+  file?: SharedFile,
 ): Message {
   const msg: Message = {
     id: crypto.randomUUID(),
@@ -76,6 +76,7 @@ export function pushMessage(
     nickname,
     body,
     sentAt: Date.now(),
+    ...(file ? { file } : {}),
   };
   room.messages.push(msg);
   if (room.messages.length > 500) room.messages.shift();
@@ -88,4 +89,48 @@ export function listMessages(room: DevRoom, cursor: number) {
     messages: room.messages.slice(cursor),
     nextCursor: room.messages.length,
   };
+}
+
+/* ---------- ファイル共有 ---------- */
+
+/** ルームで使っている合計バイト数 */
+export function usedBytes(room: DevRoom) {
+  let total = 0;
+  for (const f of room.files.values()) total += f.meta.size;
+  return total;
+}
+
+/** ファイルを保存して、その情報を返す */
+export function saveFile(
+  room: DevRoom,
+  input: {
+    name: string;
+    mimeType: string;
+    data: ArrayBuffer;
+    uploadedBy: string;
+    nickname: string;
+  },
+): SharedFile {
+  const meta: SharedFile = {
+    id: crypto.randomUUID(),
+    name: input.name,
+    size: input.data.byteLength,
+    mimeType: input.mimeType,
+    uploadedBy: input.uploadedBy,
+    nickname: input.nickname,
+    uploadedAt: Date.now(),
+  };
+  room.files.set(meta.id, { meta, data: input.data });
+  return meta;
+}
+
+export function getFile(room: DevRoom, fileId: string): StoredFile | null {
+  return room.files.get(fileId) ?? null;
+}
+
+/** 共有中のファイル一覧（新しい順） */
+export function listFiles(room: DevRoom): SharedFile[] {
+  return [...room.files.values()]
+    .map((f) => f.meta)
+    .sort((a, b) => b.uploadedAt - a.uploadedAt);
 }

@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { Chats } from "@/components/chats";
 import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
 
 export default async function RoomPage({
   params,
-}: PageProps<"/room/[roomId]">) {
+}: PageProps<"/rooms/[roomId]">) {
   const { roomId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -17,17 +18,10 @@ export default async function RoomPage({
 
   const { data: room, error: roomError } = await supabase
     .from("rooms")
-    .select("name")
+    .select("id")
     .eq("id", roomId)
     .maybeSingle();
   if (roomError || !room) notFound();
 
-  return (
-    <main className="flex flex-1 items-center justify-center">
-      <section className="flex flex-col gap-2">
-        <h1 className="text-xl font-semibold">{room.name}</h1>
-        <p className="text-sm text-muted-foreground">ルームに参加しています</p>
-      </section>
-    </main>
-  );
+  return <Chats roomId={roomId} />;
 }
