@@ -87,7 +87,7 @@
 授業や部活の集まりなど、その場にいるメンバーにはスマートフォンで読み取ってもらうだけで参加してもらえます。
 
 <p align="center">
-  <img src="docs/images/scs_share-qr-code.png" alt="共有用QRコードのダイアログ。スマートフォンのカメラで読み取ると入室画面が開く" width="480">
+  <img src="docs/images/scs_share-qr-code.png" alt="共有用QRコードのダイアログ。スマートフォンのカメラで読み取ると入室画面が開く" width="2871" height="1687">
 </p>
 
 - **登録なしでも、なりすましはできない**
