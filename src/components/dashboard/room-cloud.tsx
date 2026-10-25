@@ -13,6 +13,7 @@ type RoomCloudProps = {
   size?: "sm" | "md" | "lg";
   /** ふわふわ動くタイミングをずらす（秒） */
   floatDelay?: number;
+  className?: string;
 };
 
 const SIZE = {
@@ -21,7 +22,7 @@ const SIZE = {
   lg: "w-44 md:w-64",
 } as const;
 
-/** ダッシュボードの「雲」1つ＝ルーム1つ。クリックでチャット（管理者用）へ */
+/** ダッシュボードの「雲」1つ＝ルーム1つ。クリックでチャットへ */
 export function RoomCloud({
   href,
   name,
@@ -29,45 +30,49 @@ export function RoomCloud({
   endsToday = false,
   size = "md",
   floatDelay = 0,
+  className,
 }: RoomCloudProps) {
   return (
-    <li
-      className="flex flex-col items-center gap-2 motion-safe:animate-cloud-float"
-      style={{ animationDelay: `${floatDelay}s` }}
-    >
-      <Link
-        href={href}
-        className={cn(
-          "group relative block rounded-3xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-          SIZE[size],
-        )}
+    // 外側でずらし（className）、内側でふわふわ動かす（transform が重ならないように分ける）
+    <li className={className}>
+      <div
+        className="flex flex-col items-center gap-2 motion-safe:animate-cloud-float"
+        style={{ animationDelay: `${floatDelay}s` }}
       >
-        {/* brand/cloud-icon.tsx と同じ雲の形 */}
-        <svg
-          viewBox="0 0 32 22"
-          fill="currentColor"
-          aria-hidden
-          className="w-full text-cloud drop-shadow-[0_6px_12px_rgb(53_88_114/0.12)] transition-colors group-hover:text-cloud-strong"
+        <Link
+          href={href}
+          className={cn(
+            "group relative block rounded-3xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            SIZE[size],
+          )}
         >
-          <path d="M8.5 22A7.5 7.5 0 0 1 7.4 7.1 9 9 0 0 1 24.2 6a8 8 0 0 1 .3 16Z" />
-        </svg>
-        {/* 雲のふくらんだ下の方に名前を置く */}
-        <span className="absolute inset-x-[14%] top-[38%] bottom-[10%] flex items-center justify-center text-center">
-          <span className="line-clamp-2 text-sm font-bold leading-snug break-all text-ink md:text-base">
-            {name}
+          {/* brand/cloud-icon.tsx と同じ雲の形 */}
+          <svg
+            viewBox="0 0 32 22"
+            fill="currentColor"
+            aria-hidden
+            className="w-full text-cloud drop-shadow-[0_6px_12px_rgb(53_88_114/0.12)] transition-colors group-hover:text-cloud-strong"
+          >
+            <path d="M8.5 22A7.5 7.5 0 0 1 7.4 7.1 9 9 0 0 1 24.2 6a8 8 0 0 1 .3 16Z" />
+          </svg>
+          {/* 雲のふくらんだ下の方に名前を置く */}
+          <span className="absolute inset-x-[14%] top-[38%] bottom-[10%] flex items-center justify-center text-center">
+            <span className="line-clamp-2 text-sm font-bold leading-snug break-all text-ink md:text-base">
+              {name}
+            </span>
           </span>
-        </span>
-      </Link>
+        </Link>
 
-      <p
-        className={cn(
-          "flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs tabular-nums ring-1 ring-line",
-          endsToday ? "font-bold text-ink" : "text-ink-muted",
-        )}
-      >
-        <Timer className="size-3.5" aria-hidden />
-        {remainingLabel}
-      </p>
+        <p
+          className={cn(
+            "flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs tabular-nums ring-1 ring-line",
+            endsToday ? "font-bold text-ink" : "text-ink-muted",
+          )}
+        >
+          <Timer className="size-3.5" aria-hidden />
+          {remainingLabel}
+        </p>
+      </div>
     </li>
   );
 }

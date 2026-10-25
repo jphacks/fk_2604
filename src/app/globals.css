@@ -74,6 +74,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* --- 動き：ダッシュボードの雲がふわふわ浮かぶ --- */
+  --animate-cloud-float: cloud-float 6s ease-in-out infinite;
+  @keyframes cloud-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
 }
 
 :root {

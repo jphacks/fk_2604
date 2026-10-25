@@ -8,5 +8,5 @@ export default async function RoomAdminPage({
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = await params;
-  return <Chats roomId={roomId} />;
+  return <Chats roomId={roomId} isOwner />;
 }

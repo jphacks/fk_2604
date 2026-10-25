@@ -1,11 +1,6 @@
 "use server";
 
-<<<<<<< HEAD
-import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-=======
->>>>>>> 307a751c4c846e5e8c84564ca916d76139adbdde
 import { redirect } from "next/navigation";
 import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
 import { createClient } from "@/lib/supabase/server";
@@ -71,18 +66,10 @@ export async function createRoom(
     return { message: "招待URLを発行できませんでした", fields: { name } };
   }
 
-<<<<<<< HEAD
   // ダッシュボードのルーム一覧に新しいルームを出すため、キャッシュを破棄する
   revalidatePath("/dashboard");
 
-  const requestHeaders = await headers();
-  const origin =
-    requestHeaders.get("origin") ??
-    `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host")}`;
-  return { created: { roomId: room.id, inviteUrl: `${origin}/join/${inviteToken}` } };
-=======
   return {
     created: { roomId: room.id, inviteToken, inviteUrl: await inviteUrlFor(inviteToken) },
   };
->>>>>>> 307a751c4c846e5e8c84564ca916d76139adbdde
 }

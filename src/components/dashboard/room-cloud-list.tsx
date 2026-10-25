@@ -22,16 +22,16 @@ export function RoomCloudList({ rooms }: { rooms: RoomCloudItem[] }) {
   return (
     <ul className="flex flex-wrap items-start justify-center gap-x-6 gap-y-10 md:gap-x-16 md:gap-y-16">
       {rooms.map((room, i) => (
-        <div key={room.id} className={OFFSETS[i % OFFSETS.length]}>
-          <RoomCloud
-            href={room.href}
-            name={room.name}
-            remainingLabel={room.remainingLabel}
-            endsToday={room.endsToday}
-            size={SIZES[i % SIZES.length]}
-            floatDelay={(i % 4) * 0.8}
-          />
-        </div>
+        <RoomCloud
+          key={room.id}
+          href={room.href}
+          name={room.name}
+          remainingLabel={room.remainingLabel}
+          endsToday={room.endsToday}
+          size={SIZES[i % SIZES.length]}
+          floatDelay={(i % 4) * 0.8}
+          className={OFFSETS[i % OFFSETS.length]}
+        />
       ))}
     </ul>
   );

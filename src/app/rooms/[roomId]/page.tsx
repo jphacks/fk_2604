@@ -18,10 +18,13 @@ export default async function RoomPage({
 
   const { data: room, error: roomError } = await supabase
     .from("rooms")
-    .select("id")
+    .select("id, owner_id")
     .eq("id", roomId)
     .maybeSingle();
   if (roomError || !room) notFound();
 
-  return <Chats roomId={roomId} />;
+  // ルームの作成者（管理者）だけに設定ボタンを出す。設定ページ側でも同じ判定をしている
+  const isOwner = !user.is_anonymous && room.owner_id === user.id;
+
+  return <Chats roomId={roomId} isOwner={isOwner} />;
 }
