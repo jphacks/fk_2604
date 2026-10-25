@@ -56,11 +56,11 @@ export function PeriodForm({
     <form action={formAction} className="flex flex-col gap-6" noValidate>
       <fieldset className="flex flex-col gap-2" aria-describedby="period-summary">
         <legend className="mb-2 text-sm font-bold">利用期間</legend>
-        <p className="text-xs text-ink-muted">
+        <p className="whitespace-pre-line text-xs text-ink-muted">
           {started
-            ? `開始済みのため、変更できるのは終了日だけです。終了日をクリックして選んでください（開始日から最大${MAX_ROOM_DAYS}日）`
+            ? `開始済みのため、変更できるのは終了日だけです。\n終了日をクリックして選んでください（開始日から最大${MAX_ROOM_DAYS}日）`
             : `開始日と終了日をクリックして選んでください（最大${MAX_ROOM_DAYS}日）`}
-          。終了日の23:59にルームは消えます
+          {"。\n終了日の23:59にルームは消えます"}
         </p>
         {started ? (
           <Calendar
@@ -110,7 +110,7 @@ export function PeriodForm({
 
       <p className="flex gap-2.5 rounded-xl bg-sun px-5 py-4 text-xs leading-relaxed text-ink-muted">
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-        期限がくると、会話・ノート・ファイルはすべて消えます。終了日を早めると、その日の23:59に消えます。
+        期限がくると、会話・ファイルはすべて消えます。終了日を早めると、その日の23:59に消えます。
       </p>
 
       <Button type="submit" className="h-12 w-full rounded-xl text-sm font-bold" disabled={pending}>
