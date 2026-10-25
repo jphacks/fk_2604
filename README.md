@@ -8,12 +8,15 @@
 <img width="1920" height="1080" alt="kumotalk-overview" src="docs/images/kumotalk-overview.gif" />
 
 - 「くもとーく」アプリURL：https://fk-2604.vercel.app/
-- アプリ概要 スライド資料：
+<!-- - アプリ概要 スライド資料： -->
 
 ## 製品概要
 
-<!-- 動画を挿入予定 -->
-デモ動画
+### デモ動画
+
+[![くもとーく 製品紹介動画](https://img.youtube.com/vi/-E9KxIi6hVU/maxresdefault.jpg)](https://youtu.be/-E9KxIi6hVU)
+
+※ 画像をクリックすると YouTube で動画が開きます。
 
 ### コミュニケーション × Tech
 
