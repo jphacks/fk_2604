@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:file-storage": "node --test tests/file-storage-*.test.cjs"
+    "test:file-storage": "node --test tests/file-storage-*.test.cjs",
+    "test:admin-mfa": "node --test tests/admin-mfa*.test.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

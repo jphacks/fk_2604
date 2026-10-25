@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { requireAdminAal2 } from "@/lib/admin-authorization";
 import { DashboardActions } from "@/components/dashboard/dashboard-actions";
 import {
   CreateRoomLink,
@@ -75,9 +75,7 @@ async function getInitialHeats(roomIds: string[]): Promise<RoomHeatsResponse> {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.is_anonymous) redirect("/login");
+  const { supabase, user } = await requireAdminAal2();
 
   const { rooms, error } = await getMyRooms(supabase, user.id);
   const roomIds = rooms.map((room) => room.id);

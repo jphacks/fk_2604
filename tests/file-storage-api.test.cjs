@@ -16,7 +16,7 @@ function fixture(userId = owner) {
     userId, room: { id: roomId, owner_id: owner, name: 'room', max_members: 5,
       starts_at: new Date(Date.now()-60_000).toISOString(), expires_at: new Date(Date.now()+3600_000).toISOString() },
     members: [{ user_id: guest, nickname: 'Guest', kicked_at: null }], files: [], storage: new Map(),
-    messages: [], storageError: false, finalizeError: false, flushError: false, downloadHook: null,
+    messages: [], storageError: false, finalizeError: false, flushError: false, downloadHook: null, aal: 'aal2',
   };
   function from(table) {
     const filters = [];
@@ -68,7 +68,11 @@ function fixture(userId = owner) {
   };
   function restart() {
     const load=loader({
-      '@/lib/supabase/server':{createClient:async()=>({auth:{getUser:async()=>({data:{user:state.userId?{id:state.userId}:null}})}})},
+      '@/lib/supabase/server':{createClient:async()=>({auth:{
+        getUser:async()=>({data:{user:state.userId?{id:state.userId,is_anonymous:state.userId!==owner,
+          factors:state.userId===owner?[{id:'totp',factor_type:'totp',status:'verified'}]:[]}:null}}),
+        getClaims:async()=>({data:{claims:{sub:state.userId,aal:state.aal}},error:null}),
+      },rpc:async()=>({data:true,error:null})})},
       '@/lib/supabase/admin':{createAdminClient:()=>admin},
       '@/lib/room-files':{
         ...jobs, flushRoomFiles:async()=>{if(state.flushError) throw Error('Redis unavailable');},
@@ -217,4 +221,16 @@ test('DB listing: paginates beyond the Data API response cap',async()=>{
   const load=loader({'@/lib/supabase/admin':{createAdminClient:()=>({from:()=>query})}});
   const files=await load('src/lib/room-files.ts').listRoomFiles(roomId);
   assert.equal(files.length,1001);assert.equal(pages,3);assert.equal(files[1000].id,'1000');
+});
+
+test('Shared APIs: owner AAL1 denied while guest AAL1 chat/files stay usable',async()=>{
+  const admin=fixture(owner); admin.state.aal='aal1';
+  assert.equal((await admin.upload(uploadRequest(),ctx())).status,403);
+  assert.equal((await admin.messages.GET(new Request('http://localhost/messages'),ctx())).status,403);
+  assert.equal((await admin.download(new Request('http://localhost/file'),ctx(randomUUID()))).status,403);
+  const member=fixture(guest);member.state.aal='aal1';
+  const upload=await member.upload(uploadRequest(),ctx());assert.equal(upload.status,201);
+  const body=await upload.json();
+  assert.equal((await member.download(new Request('http://localhost/file'),ctx(body.file.id))).status,200);
+  assert.equal((await member.messages.POST(new Request('http://localhost/messages',{method:'POST',body:JSON.stringify({body:'hello'})}),ctx())).status,201);
 });

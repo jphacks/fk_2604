@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { toAuthErrorMessage } from "@/lib/supabase/auth-errors";
 import { createClient } from "@/lib/supabase/server";
 import { validateEmail } from "../validation";
+import { adminMfaDestination, adminMfaState } from "@/lib/admin-mfa";
 
 export type LoginState = {
   errors?: { email?: string; password?: string };
@@ -28,5 +29,10 @@ export async function login(
   if (error) {
     return { errors: { password: toAuthErrorMessage(error) }, fields: { email } };
   }
-  redirect("/dashboard");
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user || user.is_anonymous) return { message: "ログイン状態を確認できませんでした" };
+  let destination: string;
+  try { destination = adminMfaDestination(await adminMfaState(supabase, user)); }
+  catch { return { message: "認証状態を確認できませんでした。もう一度お試しください" }; }
+  redirect(destination);
 }

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMessageRoom } from "@/lib/redis-messages";
 import type { ApiErrorCode } from "@/lib/types";
+import { adminMfaState } from "@/lib/admin-mfa";
 
 export function fail(code: ApiErrorCode, status: number) {
   return NextResponse.json({ error: code }, { status, headers: { "Cache-Control": "private, no-store" } });
@@ -30,6 +31,11 @@ export async function authorizeRoom(roomId: string) {
     const membership = members?.find((member) => member.user_id === user.id);
     const isOwner = room.owner_id === user.id;
     if (!isOwner && !membership) return { response: fail("NOT_MEMBER", 403) } as const;
+    // Shared guest endpoints keep AAL1. Owners must finish administrator MFA,
+    // including when called directly without visiting a protected page.
+    if (isOwner && await adminMfaState(client, user) !== "ready") {
+      return { response: fail("NOT_MEMBER", 403) } as const;
+    }
     const start = Date.parse(room.starts_at), end = Date.parse(room.expires_at), now = Date.now();
     if (!Number.isFinite(start) || !Number.isFinite(end) || start > now || end <= now) {
       return { response: fail("ROOM_GONE", 404) } as const;
