@@ -10,8 +10,7 @@
  *   「今の点数」は読むたびに経過時間から計算し直す（定期的に減らす処理はいらない）
  *
  * 保存場所
- * - いまは lib/dev-store.ts のメモリ上
- * - 本番では Redis の room:{roomId}:heat に、ルームと同じTTLで保存する想定
+ * - Redis の room:{roomId}:heat に、ルームと同じ期限で保存する（lib/dev-store.ts）
  *   （ルームが消えると点数も一緒に消える）
  *
  * React や Next.js には依存しない、純粋な関数だけを置くこと。

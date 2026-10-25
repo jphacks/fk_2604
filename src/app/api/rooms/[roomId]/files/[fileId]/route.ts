@@ -30,11 +30,11 @@ export async function GET(req: Request, { params }: Ctx) {
 
   if (!guestId) return fail("BAD_REQUEST", 400);
 
-  const room = getRoom(roomId);
+  const room = await getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
   if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
 
-  const stored = getFile(room, fileId);
+  const stored = await getFile(room, fileId);
   if (!stored) return fail("FILE_NOT_FOUND", 404);
 
   const { meta, data } = stored;

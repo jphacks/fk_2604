@@ -50,14 +50,14 @@ export async function POST(req: Request, { params }: Ctx) {
   }
   if (file.size > MAX_FILE_BYTES) return fail("FILE_TOO_LARGE", 413);
 
-  const room = getRoom(roomId);
+  const room = await getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
   if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
-  if (usedBytes(room) + file.size > MAX_ROOM_BYTES) {
+  if ((await usedBytes(room)) + file.size > MAX_ROOM_BYTES) {
     return fail("ROOM_STORAGE_FULL", 413);
   }
 
-  const meta = saveFile(room, {
+  const meta = await saveFile(room, {
     name: cleanFileName(file.name),
     mimeType: file.type || "application/octet-stream",
     data: await file.arrayBuffer(),
@@ -66,7 +66,7 @@ export async function POST(req: Request, { params }: Ctx) {
   });
 
   // チャットにも流す（本文は通知文、ファイル情報は file に入れる）
-  const message = pushMessage(
+  const message = await pushMessage(
     room,
     guestId,
     nickname,

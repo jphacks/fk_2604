@@ -7,7 +7,7 @@ import {
   RoomCloudError,
 } from "@/components/dashboard/room-cloud-list";
 import { PageShell } from "@/components/layout/page-shell";
-import { getRoomHeat } from "@/lib/dev-store";
+import { getRoomHeats } from "@/lib/dev-store";
 import type { RoomHeatsResponse } from "@/lib/room-heat";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "../(auth)/login/logout-actions";
@@ -45,13 +45,16 @@ async function getMyRooms(supabase: Supabase, userId: string) {
 }
 
 /** 最初に表示する盛り上がりの点数。以降はブラウザ側（useRoomHeat）で取り直す */
-function getInitialHeats(roomIds: string[]): RoomHeatsResponse {
+async function getInitialHeats(roomIds: string[]): Promise<RoomHeatsResponse> {
   // Date.now() はコンポーネント本体で呼ぶと react-hooks/purity に引っかかるので、ここで呼ぶ
   const now = Date.now();
-  const heats: RoomHeatsResponse["heats"] = {};
-  // TODO: Redis 接続後は room:{roomId}:heat を読む
-  for (const id of roomIds) heats[id] = getRoomHeat(id);
-  return { heats, now };
+  try {
+    return { heats: await getRoomHeats(roomIds), now };
+  } catch (error) {
+    // Redis に繋がらなくても一覧は出す（雲はすべて小さく表示される）
+    console.error("[dashboard] 盛り上がりの取得に失敗", error);
+    return { heats: {}, now };
+  }
 }
 
 export default async function DashboardPage() {
@@ -70,7 +73,7 @@ export default async function DashboardPage() {
       endsToday: expiresAt - now < DAY_MS,
     };
   });
-  const initialHeats = getInitialHeats(rooms.map((room) => room.id));
+  const initialHeats = await getInitialHeats(rooms.map((room) => room.id));
 
   return (
     <PageShell

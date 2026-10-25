@@ -48,8 +48,8 @@ export default async function RoomPage({
     nickname = member.nickname;
   }
 
-  // チャットはまだ開発用ストアで動いているので、DBのルーム名・期限をそちらに反映する
-  syncRoomInfo({
+  // チャットは Redis（lib/dev-store.ts）に保存しているので、DBのルーム名・期限をそちらに反映する
+  await syncRoomInfo({
     id: room.id,
     name: room.name,
     maxMembers: room.max_members,

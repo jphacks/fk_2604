@@ -30,18 +30,18 @@ export async function GET(req: Request, { params }: Ctx) {
 
   if (!guestId || !nickname) return fail("BAD_REQUEST", 400);
 
-  const room = getRoom(roomId);
+  const room = await getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
-  if (!addMember(room, guestId, nickname)) return fail("ROOM_FULL", 403);
+  if (!(await addMember(room, guestId, nickname))) return fail("ROOM_FULL", 403);
 
-  const { messages, nextCursor } = listMessages(room, cursor);
+  const { messages, nextCursor } = await listMessages(room, cursor);
   const body: MessagesResponse = {
     messages,
     nextCursor,
     memberCount: room.members.size,
     members: [...room.members].map(([id, name]) => ({ guestId: id, nickname: name })),
     room: room.info,
-    files: listFiles(room),
+    files: await listFiles(room),
   };
   return NextResponse.json(body);
 }
@@ -57,10 +57,10 @@ export async function POST(req: Request, { params }: Ctx) {
     return fail("BAD_REQUEST", 400);
   }
 
-  const room = getRoom(roomId);
+  const room = await getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
   if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
 
-  const msg = pushMessage(room, guestId, nickname, text);
+  const msg = await pushMessage(room, guestId, nickname, text);
   return NextResponse.json(msg, { status: 201 });
 }
