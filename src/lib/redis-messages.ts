@@ -70,6 +70,7 @@ export async function syncMessageTtl(room: MessageRoom): Promise<void> {
     .multi()
     .expireat(keyFor(room.id), expiresAt)
     .expireat(heatKeyFor(room.id), expiresAt)
+    .expireat(`chat:room:${room.id}:file-notifications`, expiresAt)
     .exec();
 }
 

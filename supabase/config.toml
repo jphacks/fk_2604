@@ -4,6 +4,11 @@
 # working directory name when running `supabase init`.
 project_id = "fk_2604"
 
+[functions.room-file-maintenance]
+verify_jwt = false
+entrypoint = "./functions/room-file-maintenance/index.js"
+import_map = "./functions/deno.json"
+
 [api]
 enabled = true
 # Port to use for the API URL.

@@ -1,8 +1,14 @@
-# くもとーく
+# チャットアプリ「くもとーく」
 
 <!-- メインとなる画像に差し替える予定 -->
-
+<!--
 [![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2026/07/IMG_5316.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
+<img width="2854" height="1667" alt="image" src="https://github.com/user-attachments/assets/91658862-402c-4a6a-928a-04b51b046f9d" />
+-->
+<!-- <img width="3840" height="2160" alt="アプリ概要" src="https://github.com/user-attachments/assets/49d4e5fb-0550-4132-8dbf-c15ea859fb68" /> -->
+<img width="1920" height="1080" alt="kumotalk-overview" src="docs/images/kumotalk-overview.gif" />
+
+
 
 ## 製品概要
 
@@ -11,9 +17,13 @@
 ### コミュニケーション × Tech
 
 <p align="center">
+  <!-- 
   <img src="docs/images/sns_happy_man.png" alt="スマホで仲間と会話する人" width="30%">
   <img src="docs/images/times.jpg" alt="×" width="30%">
-  <img src="docs/images/computer_mob_programming.png" alt="チームで開発する様子" width="30%">
+  <img src="docs/images/computer_mob_programming.png" alt="チームで開発する様子" width="30%"> 
+  -->
+  <img width="1200" height="400" alt="kumotalk_communication_x_tech" src="docs/images/kumotalk_communication_x_tech.png" />
+  
 </p>
 
 ### 背景(製品開発のきっかけ、課題等)
@@ -25,6 +35,9 @@
 
 こうした経験から、私たちは「**短期間しか必要のないグループのために、グループやメッセージ、連絡先がいつまでも残り続けてしまう**」ことを課題としました。
 そこで、**あらかじめ決めた期間が過ぎると、メッセージもグループも消え去る**コミュニケーションツールを開発しました。
+
+<img width="3600" height="720" alt="kumotalk_background" src="docs/images/kumotalk_background.png" />
+
 
 ### 製品説明（具体的な製品の説明）
 
@@ -48,7 +61,7 @@
 
 <!-- 仮の画像: ルーム作成画面（カレンダーで利用期間を選ぶところ） -->
 <p align="center">
-  <img src="docs/images/scs_create-room.png" alt="新規ルーム作成画面。カレンダーで10月25日〜10月30日の利用期間を選んでいる" width="360">
+  <img width="2849" height="1669" alt="image" src="docs/images/chat_create.png" />
 </p>
 
 - **そもそも残さない設計**
@@ -61,6 +74,8 @@
 チャット画面には、ルームが消えるまでの残り時間を表示します。あとどれくらい会話できるのかが一目でわかります。
 
 <!-- 画像: チャット画面（カウントダウン） -->
+<img width="3200" height="1888" alt="チャット画面" src="docs/images/チャット画面.png" />
+
 
 #### 2. アカウント登録なしで、QRコードからすぐ参加できる
 
@@ -70,6 +85,8 @@
 メールアドレスやパスワードの登録、友だち追加は必要ありません。一時的なグループのために連絡先を交換しなくてよいので、「この人誰だっけ？」という連絡先も増えません。
 
 <!-- 画像: 入室画面（ニックネームの入力） -->
+<img width="2871" height="1687" alt="image" src="https://github.com/user-attachments/assets/47b3cfa3-b922-46e5-a934-987baec320af" />
+
 
 - **QRコードで、その場にいるメンバーにすぐ共有**
 
@@ -77,7 +94,7 @@
 授業や部活の集まりなど、その場にいるメンバーにはスマートフォンで読み取ってもらうだけで参加してもらえます。
 
 <p align="center">
-  <img src="docs/images/scs_share-qr-code.png" alt="共有用QRコードのダイアログ。スマートフォンのカメラで読み取ると入室画面が開く" width="480">
+  <img src="docs/images/scs_share-qr-code.png" alt="共有用QRコードのダイアログ。スマートフォンのカメラで読み取ると入室画面が開く" width="2871" height="1687">
 </p>
 
 - **登録なしでも、なりすましはできない**
@@ -130,8 +147,16 @@
 
 ### 注力したこと（こだわり等）
 
--
--
+- **話の盛り上がりに応じてチャットルームの雲の大きさが変わる**
+  - メッセージが1件届くたびに点数が1増え、30分ごとに半分に減っていく設計
+  - いま話が盛り上がっているルームほど雲が大きくなり、静かになると少しずつ小さくなります。
+  - 視覚的に、見逃したくないトークを追うことができます。
+ 　　 <img src="docs/images/cloud-size.gif" alt="雲の大きさ" width="800">
+    
+- **利用者の手間を最低限減らすように設計**
+  - 当初はルーム作成時に、参加人数や参加用パスワードなどを細かく設定する方針を取っていましたが、「利用する手間」が「このアプリを利用する目的」を上回らないように方向性を定めました。
+  - チャット作成時（ホスト）：「ルーム名」と「利用期限」の2ステップで作成完了。
+  - チャット参加時：「ユーザ名」の入力だけでルームに参加可能。パスワードの設定の代わりに、招待用のURLは1時間おきに自動変更。
 
 ## 開発技術
 
