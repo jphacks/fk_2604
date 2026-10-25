@@ -63,6 +63,7 @@ export async function joinRoom(
     p_nickname: nickname,
   });
   if (joinError) {
+    console.error("[joinRoom] ルームへの参加に失敗", joinError);
     if (joinError.message.includes("room is full")) {
       return { message: "このルームは満員です", fields: { nickname } };
     }

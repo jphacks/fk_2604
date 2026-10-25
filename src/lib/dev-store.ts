@@ -62,6 +62,18 @@ export function getExistingRoom(roomId: string): DevRoom | null {
   return room;
 }
 
+/**
+ * DB（Supabase）のルーム情報で上書きする。ルーム名・期限をダッシュボードで作ったものと揃えるため、
+ * app/rooms/[roomId]/page.tsx を開いたときに呼ぶ
+ */
+export function syncRoomInfo(info: RoomInfo) {
+  const room = rooms.get(info.id);
+  if (room) room.info = info;
+  else {
+    rooms.set(info.id, { info, members: new Map(), messages: [], files: new Map() });
+  }
+}
+
 /** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
 export function addMember(room: DevRoom, guestId: string, nickname: string) {
   if (room.members.has(guestId)) {
