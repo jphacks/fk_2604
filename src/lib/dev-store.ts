@@ -51,6 +51,17 @@ export function getRoom(roomId: string): DevRoom | null {
   return room;
 }
 
+export function getExistingRoom(roomId: string): DevRoom | null {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+  room.files ??= new Map();
+  if (room.info.expiresAt <= Date.now()) {
+    rooms.delete(roomId);
+    return null;
+  }
+  return room;
+}
+
 /**
  * DB（Supabase）のルーム情報で上書きする。ルーム名・期限をダッシュボードで作ったものと揃えるため、
  * app/rooms/[roomId]/page.tsx を開いたときに呼ぶ
