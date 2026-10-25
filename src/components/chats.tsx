@@ -74,11 +74,14 @@ export function Chats({ roomId }: { roomId: string }) {
   // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
   // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) setMe(JSON.parse(saved));
-    } catch {}
-    setReady(true);
+    const initialize = window.setTimeout(() => {
+      try {
+        const saved = sessionStorage.getItem(STORAGE_KEY);
+        if (saved) setMe(JSON.parse(saved));
+      } catch {}
+      setReady(true);
+    }, 0);
+    return () => clearTimeout(initialize);
   }, []);
 
   // --- 新着メッセージの取得 ---
@@ -120,9 +123,12 @@ export function Chats({ roomId }: { roomId: string }) {
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
     if (!me) return;
-    fetchNew();
+    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
     const t = setInterval(fetchNew, POLL_MS);
-    return () => clearInterval(t);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(t);
+    };
   }, [fetchNew, me]);
 
   // --- ファイル共有 ---

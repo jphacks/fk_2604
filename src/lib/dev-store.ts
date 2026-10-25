@@ -51,6 +51,17 @@ export function getRoom(roomId: string): DevRoom | null {
   return room;
 }
 
+export function getExistingRoom(roomId: string): DevRoom | null {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+  room.files ??= new Map();
+  if (room.info.expiresAt <= Date.now()) {
+    rooms.delete(roomId);
+    return null;
+  }
+  return room;
+}
+
 /** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
 export function addMember(room: DevRoom, guestId: string, nickname: string) {
   if (room.members.has(guestId)) {

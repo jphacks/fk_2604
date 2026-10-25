@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getRoom, pushMessage, saveFile, usedBytes } from "@/lib/dev-store";
+import { getRoom, saveFile, usedBytes } from "@/lib/dev-store";
 import { MAX_FILE_BYTES, MAX_ROOM_BYTES } from "@/lib/file-limits";
+import { getMessageRoom, pushMessage } from "@/lib/redis-messages";
 import type { ApiErrorCode } from "@/lib/types";
 
 /**
@@ -66,8 +67,8 @@ export async function POST(req: Request, { params }: Ctx) {
   });
 
   // チャットにも流す（本文は通知文、ファイル情報は file に入れる）
-  const message = pushMessage(
-    room,
+  const message = await pushMessage(
+    getMessageRoom(roomId, new Date(room.info.expiresAt).toISOString()),
     guestId,
     nickname,
     `ファイルを共有しました：${meta.name}`,
