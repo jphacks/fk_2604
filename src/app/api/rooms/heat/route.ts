@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRoomHeats } from "@/lib/dev-store";
+import { getRoomHeats } from "@/lib/redis-messages";
 import type { RoomHeatsResponse } from "@/lib/room-heat";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,7 +28,7 @@ export async function GET() {
     return NextResponse.json({ error: "INTERNAL" }, { status: 500 });
   }
 
-  // Redis の room:{roomId}:heat をまとめて読む
+  // Redis の chat:room:{roomId}:heat をまとめて読む
   const heats = await getRoomHeats(data.map((room) => room.id));
 
   const body: RoomHeatsResponse = { heats, now };

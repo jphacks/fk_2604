@@ -45,4 +45,5 @@ export type ApiErrorCode =
   | "BAD_REQUEST"
   | "FILE_TOO_LARGE"
   | "ROOM_STORAGE_FULL"
-  | "FILE_NOT_FOUND";
+  | "FILE_NOT_FOUND"
+  | "SERVICE_UNAVAILABLE";

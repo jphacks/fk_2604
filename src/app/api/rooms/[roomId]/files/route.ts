@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getRoom, pushMessage, saveFile, usedBytes } from "@/lib/dev-store";
+import { getRoom, saveFile, usedBytes } from "@/lib/dev-store";
 import { MAX_FILE_BYTES, MAX_ROOM_BYTES } from "@/lib/file-limits";
+import { getMessageRoom, pushMessage } from "@/lib/redis-messages";
 import type { ApiErrorCode } from "@/lib/types";
 
 /**
@@ -50,14 +51,14 @@ export async function POST(req: Request, { params }: Ctx) {
   }
   if (file.size > MAX_FILE_BYTES) return fail("FILE_TOO_LARGE", 413);
 
-  const room = await getRoom(roomId);
+  const room = getRoom(roomId);
   if (!room) return fail("ROOM_GONE", 404);
   if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
-  if ((await usedBytes(room)) + file.size > MAX_ROOM_BYTES) {
+  if (usedBytes(room) + file.size > MAX_ROOM_BYTES) {
     return fail("ROOM_STORAGE_FULL", 413);
   }
 
-  const meta = await saveFile(room, {
+  const meta = saveFile(room, {
     name: cleanFileName(file.name),
     mimeType: file.type || "application/octet-stream",
     data: await file.arrayBuffer(),
@@ -67,7 +68,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
   // チャットにも流す（本文は通知文、ファイル情報は file に入れる）
   const message = await pushMessage(
-    room,
+    getMessageRoom(roomId, new Date(room.info.expiresAt).toISOString()),
     guestId,
     nickname,
     `ファイルを共有しました：${meta.name}`,

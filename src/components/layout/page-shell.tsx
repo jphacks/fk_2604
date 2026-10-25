@@ -8,13 +8,21 @@ type PageShellProps = {
   actions?: ReactNode;
   logoHref?: string;
   className?: string;
+  /** ヘッダーの見た目を画面ごとに変えたいとき（例：チャット画面は高さを詰める） */
+  headerClassName?: string;
 };
 
 /** 全画面共通の外枠（単色の背景＋上部固定のヘッダー）。背景・ヘッダーの色はここで統一する */
-export function PageShell({ children, actions, logoHref, className }: PageShellProps) {
+export function PageShell({
+  children,
+  actions,
+  logoHref,
+  className,
+  headerClassName,
+}: PageShellProps) {
   return (
     <div className={cn("flex min-h-dvh flex-col bg-paper text-ink", className)}>
-      <AppHeader logoHref={logoHref} actions={actions} />
+      <AppHeader logoHref={logoHref} actions={actions} className={headerClassName} />
       {children}
     </div>
   );

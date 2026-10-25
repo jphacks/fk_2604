@@ -7,7 +7,7 @@ import {
   RoomCloudError,
 } from "@/components/dashboard/room-cloud-list";
 import { PageShell } from "@/components/layout/page-shell";
-import { getRoomHeats } from "@/lib/dev-store";
+import { getRoomHeats } from "@/lib/redis-messages";
 import type { RoomHeatsResponse } from "@/lib/room-heat";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "../(auth)/login/logout-actions";
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
     return {
       id: room.id,
       name: room.name,
-      href: `/rooms/${room.id}/admin`, // 管理者用チャット
+      href: `/rooms/${room.id}`, // 管理者もゲストと同じチャット画面（設定ボタンが出る）
       remainingLabel: formatRemainingDays(expiresAt, now),
       endsToday: expiresAt - now < DAY_MS,
     };
