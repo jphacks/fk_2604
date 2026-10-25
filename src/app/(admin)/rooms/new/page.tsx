@@ -44,7 +44,7 @@ export default async function NewRoomPage() {
         <p className="mt-3 text-sm text-ink-muted">
           必要な期間だけ、気軽に集まれる。
           <br />
-          終われば雲のように自然に消えていくトークルーム。
+          終われば雲のように、自然に消えていくトークルームを作成します。
         </p>
 
         <RoomCreateForm />
