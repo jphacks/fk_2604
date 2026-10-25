@@ -162,7 +162,7 @@
   - 日常使いで利用できるアプリであるため、レスポンシブデザインを採用。webアプリに加えてスマホアプリも表示できるようにしました。
   <p align="center">
     <img src="docs/images/smartphone-chat.png" alt="スマホ画面" width="300">
-  </p>
+  </p>  
 
 ## 開発技術
 
