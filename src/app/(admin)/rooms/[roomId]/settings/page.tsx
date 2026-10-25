@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChevronLeftIcon } from "lucide-react";
 
 import {
   Card,
@@ -51,6 +53,13 @@ export default async function RoomSettingsPage({
     <main className="flex flex-1 items-center justify-center bg-muted/40 px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="border-b">
+          <Link
+            href={`/rooms/${room.id}`}
+            className="-ml-2 flex w-fit items-center gap-1 rounded-full px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <ChevronLeftIcon className="size-4" aria-hidden />
+            チャットに戻る
+          </Link>
           <CardTitle className="text-lg font-semibold">
             {room.name} のトークルーム〈設定〉
           </CardTitle>
