@@ -172,7 +172,7 @@ export function RoomCloud({
       >
         {/* 雲の形と中身。残り時間はこの下に置く */}
         <div className="relative">
-          <CloudBubble className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))] transition-[color,filter] duration-700 group-has-[a:hover]:brightness-[0.97]" />
+          <CloudBubble outline className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))] transition-[color,filter] duration-700 group-has-[a:hover]:brightness-[0.97]" />
 
           {/* 消えるとき（gone）だけ、雲のまわりに粒が散る */}
           <span
@@ -190,15 +190,15 @@ export function RoomCloud({
           </span>
 
           {fading && (
-            // 右端からこぼれる小さな雲の粒
+            // 右端からこぼれる小さな雲の粒（雲本体と同じく白でふちどる）
             <span
               aria-hidden
               className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))]"
             >
-              <span className="absolute top-[42%] -right-[4%] size-[6%] rounded-full bg-current" />
-              <span className="absolute top-[60%] -right-[1%] size-[4.5%] rounded-full bg-current" />
-              <span className="absolute top-[47%] -right-[9%] size-[2.5%] rounded-full bg-current" />
-              <span className="absolute top-[72%] right-[3%] size-[2%] rounded-full bg-current" />
+              <span className="absolute top-[42%] -right-[4%] size-[6%] rounded-full bg-current ring-[1.5px] ring-white" />
+              <span className="absolute top-[60%] -right-[1%] size-[4.5%] rounded-full bg-current ring-[1.5px] ring-white" />
+              <span className="absolute top-[47%] -right-[9%] size-[2.5%] rounded-full bg-current ring-[1.5px] ring-white" />
+              <span className="absolute top-[72%] right-[3%] size-[2%] rounded-full bg-current ring-[1.5px] ring-white" />
             </span>
           )}
 

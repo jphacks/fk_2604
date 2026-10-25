@@ -15,6 +15,8 @@ type PageShellProps = {
   headerClassName?: string;
   /** ページ下にフッターを出す（チャット画面のように全画面を使う画面では出さない） */
   footer?: boolean;
+  /** フッターの文言をこの画面だけ変えたいとき（省略するとサイト共通のキャッチコピー） */
+  footerText?: string;
 };
 
 /** 全画面共通の外枠（単色の背景＋上部固定のヘッダー）。背景・ヘッダーの色はここで統一する */
@@ -27,6 +29,7 @@ export function PageShell({
   className,
   headerClassName,
   footer = false,
+  footerText,
 }: PageShellProps) {
   return (
     <div className={cn("flex min-h-dvh flex-col bg-paper text-ink", className)}>
@@ -38,7 +41,7 @@ export function PageShell({
         className={headerClassName}
       />
       {children}
-      {footer && <SiteFooter />}
+      {footer && <SiteFooter text={footerText} />}
     </div>
   );
 }

@@ -98,7 +98,9 @@ export default async function DashboardPage() {
   }));
 
   return (
+    // 背景はチャット画面と同じ、空のグラデーション＋ふんわりした雲（globals.css の bg-sky-clouds）
     <PageShell
+      className="bg-sky-clouds"
       logoHref="/dashboard"
       actions={<DashboardActions name={displayName} logoutAction={logout} />}
       footer

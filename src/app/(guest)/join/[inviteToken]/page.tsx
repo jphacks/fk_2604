@@ -57,14 +57,14 @@ function Welcome() {
   return (
     <section className="relative flex flex-col overflow-hidden rounded-3xl bg-cloud-pale p-8 md:min-h-[600px] md:p-10">
       <h2 className="text-2xl leading-snug font-bold md:text-[34px]">
-        招待された雲へ、
+        ようこそ、
         <br />
-        ようこそ。
+        <strong>くもとーく</strong> へ
       </h2>
       <p className="mt-6 text-sm leading-relaxed text-ink-muted">
         アカウントは、いりません。
         <br />
-        名前だけで、会話の輪の中へ。
+        名前だけで、会話の中へ。
       </p>
 
       <div aria-hidden className="relative mt-10 hidden flex-1 md:block">
@@ -92,9 +92,10 @@ export default async function JoinPage({
   return (
     <PageShell
       actions={
-        <p className="hidden text-xs text-ink-muted sm:block">招待された方のための、小さな空間</p>
+        <p className="hidden text-xs text-ink-muted sm:block">必要な期間だけ、気軽に集まれる。</p>
       }
       footer
+      footerText="終われば、雲のように自然に消えていくトークルーム。"
     >
       <main className="mx-auto grid w-full max-w-6xl flex-1 gap-10 px-5 py-8 md:grid-cols-2 md:items-center md:gap-16 md:px-12 md:py-14">
         <Welcome />
