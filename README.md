@@ -6,7 +6,7 @@
 <img width="2854" height="1667" alt="image" src="https://github.com/user-attachments/assets/91658862-402c-4a6a-928a-04b51b046f9d" />
 -->
 <!-- <img width="3840" height="2160" alt="アプリ概要" src="https://github.com/user-attachments/assets/49d4e5fb-0550-4132-8dbf-c15ea859fb68" /> -->
-<img width="1920" height="1080" alt="kumotalk-overview" src="https://github.com/user-attachments/assets/2f0c6679-fb98-40e6-bd17-ae1cdbc1c9a5" />
+<img width="1920" height="1080" alt="kumotalk-overview" src="docs/images/kumotalk-overview.gif" />
 
 
 
