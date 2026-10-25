@@ -4,12 +4,38 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+ * くもとーく デザイントークン
+ *
+ * 色・フォント・角丸はすべてここで決める。各画面では
+ *   bg-paper / text-ink / bg-cloud … のようなクラス名で使い、
+ *   #355872 のような色コードを直接書かない。
+ * 色を変えたくなったら、下の :root の値を書き換えるだけで全画面に反映される。
+ * ============================================================ */
+
 @theme inline {
+  /* --- くもとーく独自の色（Figma「新配色」） --- */
+  --color-ink: var(--ink); /* 見出し・本文 */
+  --color-ink-muted: var(--ink-muted); /* 補助テキスト（日時・説明） */
+  --color-cloud: var(--cloud); /* 主役の水色：自分の吹き出し・主ボタン・ロゴ */
+  --color-cloud-strong: var(--cloud-strong); /* 主ボタンのホバー */
+  --color-cloud-soft: var(--cloud-soft); /* アバター */
+  --color-cloud-pale: var(--cloud-pale); /* カード・チップの淡い背景 */
+  --color-paper: var(--paper); /* ページ背景 */
+  --color-line: var(--line); /* 区切り線・枠線 */
+
+  /* --- フォント --- */
+  /* --font-noto-sans-jp は app/layout.tsx の next/font が用意する。
+     読み込めなかったときに指定全体が無効にならないよう、var() に代わりの値を入れておく */
+  --font-sans:
+    var(--font-noto-sans-jp, "Noto Sans JP"), "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
+  --font-mono: var(--font-geist-mono, ui-monospace), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  /* --- shadcn/ui の部品（components/ui）が使う色 --- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +65,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* --- 角丸 --- */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,43 +74,67 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* --- 動き：ダッシュボードの雲がふわふわ浮かぶ --- */
+  --animate-cloud-float: cloud-float 6s ease-in-out infinite;
+  @keyframes cloud-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* くもとーくの配色（基準の3色：#96D9D9 / #F8FBFA / #355872） */
+  --ink: #355872;
+  --ink-muted: #527085;
+  --cloud: #96d9d9;
+  --cloud-strong: #80cfcf;
+  --cloud-soft: #cdeeee;
+  --cloud-pale: #e9f7f6;
+  --paper: #f8fbfa; /* 背景は単色。水色の雲や吹き出しが埋もれないよう、ほぼ白にする */
+  --line: #e3edeb;
+
+  /* shadcn/ui の色を、くもとーくの配色に対応させる */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--cloud);
+  --primary-foreground: var(--ink);
+  --secondary: var(--cloud-pale);
+  --secondary-foreground: var(--ink);
+  --muted: var(--cloud-pale);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--cloud-pale);
+  --accent-foreground: var(--ink);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--cloud);
+  --chart-1: var(--cloud);
+  --chart-2: var(--ink);
+  --chart-3: var(--ink-muted);
+  --chart-4: var(--cloud-soft);
+  --chart-5: var(--line);
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--cloud);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: var(--cloud-pale);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--cloud);
 }
 
+/* ダークモード（.dark クラスを付けたときだけ。いまは未使用） */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -126,5 +178,6 @@
   }
   html {
     @apply font-sans;
+    -webkit-font-smoothing: antialiased;
   }
 }

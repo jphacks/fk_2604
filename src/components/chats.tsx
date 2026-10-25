@@ -2,90 +2,97 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import type { Member, Message, MessagesResponse, RoomInfo } from "@/lib/types";
+import {
+  LogOut,
+  NotebookPen,
+  Paperclip,
+  SendHorizontal,
+  Settings,
+  Upload,
+  Users,
+} from "lucide-react";
+import { AttachMenu } from "@/components/chat/attach-menu";
+import { FileAttachment } from "@/components/chat/file-attachment";
+import { SharedFiles } from "@/components/chat/shared-files";
+import { UploadStatus } from "@/components/chat/upload-status";
+import { BottomSheet } from "@/components/common/bottom-sheet";
+import { formatDayLabel, formatMembers, isSameDay } from "@/components/common/format";
+import { InitialAvatar } from "@/components/common/initial-avatar";
+import { PageShell } from "@/components/layout/page-shell";
+import { ExpiryDate } from "@/components/room/expiry-date";
+import { LeaveRoomButton } from "@/components/room/leave-room-button";
+import { RoomEnded } from "@/components/room/room-ended";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { formatTime } from "@/lib/format";
+import type {
+  Member,
+  Message,
+  MessagesResponse,
+  RoomInfo,
+  SharedFile,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /* ============================================================
  * chats.tsx：チャット画面（S-09）に必要な機能をすべて集約したファイル
  *  1. 定数・型
- *  2. 小さな関数（時刻・残り時間の整形）
+ *  2. 小さな関数（人数・日付区切りは components/common/format.ts、時刻は lib/format.ts）
  *  3. ページ本体（状態管理・通信）
- *  4. 画面の描画（ニックネーム入力 / 満員・消滅 / チャット）
+ *  4. 画面の描画（満員・消滅 / チャット）
  * ============================================================ */
 
 /* ---------- 1. 定数・型 ---------- */
 
-type Identity = Member;
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
-const STORAGE_KEY = "ephemeral-chat:identity";
 const POLL_MS = 2500; // 新着を取りに行く間隔
 
 /* ---------- 2. 小さな関数 ---------- */
 
-function formatTime(ms: number) {
-  return new Date(ms).toLocaleTimeString("ja-JP", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-// 上限なしなら「4 人」、上限ありなら「4 / 10 人」
-function formatMembers(count: number, max: number | null | undefined) {
-  return max ? `${count} / ${max} 人` : `${count} 人`;
-}
-
-function formatRemaining(expiresAt: number | undefined, now: number) {
-  if (!expiresAt) return "--:--:--";
-  const s = Math.floor(Math.max(0, expiresAt - now) / 1000);
-  const d = Math.floor(s / 86400);
-  const h = String(Math.floor((s % 86400) / 3600)).padStart(2, "0");
-  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-  const sec = String(s % 60).padStart(2, "0");
-  return `${d > 0 ? `${d}日 ` : ""}${h}:${m}:${sec}`;
+// 参加者の名前を「はる・ゆい・けん」のようにつなげる
+function joinNames(people: Member[]) {
+  return people.map((p) => p.nickname).join("・");
 }
 
 /* ---------- 3. ページ本体 ---------- */
 
-// roomId は app/rooms/[roomId]/page.tsx から受け取る
-export function Chats({ roomId }: { roomId: string }) {
+// roomId・me・isOwner は app/rooms/[roomId]/page.tsx から受け取る
+// me：ログイン中のユーザーID＋招待リンクの入室時に登録したニックネーム
+// isOwner：ルームの作成者なら true（設定ボタンを表示する）
+export function Chats({
+  roomId,
+  me,
+  isOwner = false,
+}: {
+  roomId: string;
+  me: Member;
+  isOwner?: boolean;
+}) {
 
   // --- 状態 ---
-  const [me, setMe] = useState<Identity | null>(null);
-  const [ready, setReady] = useState(false); // localStorageの確認が終わったか
-  const [nameInput, setNameInput] = useState("");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [members, setMembers] = useState<Member[]>([]);
+  const [files, setFiles] = useState<SharedFile[]>([]); // 共有ファイル一覧
   const [status, setStatus] = useState<Status>("loading");
+  const [dragging, setDragging] = useState(false); // ファイルをドラッグ中か
+  const [membersOpen, setMembersOpen] = useState(false); // スマホの参加者・共有ファイル一覧
+  const [now, setNow] = useState(0); // 「今日」の判定用。取得のたびに更新する
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
 
   const cursor = useRef(0); // どこまでメッセージを受け取ったか
   const fetching = useRef(false); // 取得の二重実行を防ぐ（同じメッセージが重複するため）
   const composing = useRef(false); // 日本語変換中のEnterを送信と誤認しないため
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  // --- ブラウザに保存した一時ID＋ニックネームを読み込む ---
-  // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
-  // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) setMe(JSON.parse(saved));
-    } catch {}
-    setReady(true);
-  }, []);
+  const fileInputRef = useRef<HTMLInputElement>(null); // 「ファイル共有」ボタン用
 
   // --- 新着メッセージの取得 ---
   const fetchNew = useCallback(async () => {
-    if (!me || fetching.current) return;
+    if (fetching.current) return;
     fetching.current = true;
     const qs = new URLSearchParams({
       guestId: me.guestId,
@@ -104,6 +111,8 @@ export function Chats({ roomId }: { roomId: string }) {
       setRoom(data.room);
       setMemberCount(data.memberCount);
       setMembers(data.members);
+      setFiles(data.files ?? []);
+      setNow(Date.now());
       setStatus("ok");
       if (data.messages.length > 0) {
         setMessages((prev) => {
@@ -120,17 +129,21 @@ export function Chats({ roomId }: { roomId: string }) {
 
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
-    if (!me) return;
-    fetchNew();
+    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
     const t = setInterval(fetchNew, POLL_MS);
-    return () => clearInterval(t);
-  }, [fetchNew, me]);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(t);
+    };
+  }, [fetchNew]);
 
-  // カウントダウン用に1秒ごとに現在時刻を更新
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  // --- ファイル共有 ---
+  // アップロードが終わったら、すぐ新着を取りに行ってチャットに反映する
+  const { upload, uploading, error: uploadError, clearError } = useFileUpload(
+    roomId,
+    me,
+    fetchNew,
+  );
 
   // 新着が来たら一番下までスクロール
   useEffect(() => {
@@ -140,7 +153,7 @@ export function Chats({ roomId }: { roomId: string }) {
   // --- 送信 ---
   async function send() {
     const body = text.trim();
-    if (!me || !body || sending) return;
+    if (!body || sending) return;
     setSending(true);
     const res = await fetch(`/api/rooms/${roomId}/messages`, {
       method: "POST",
@@ -156,225 +169,293 @@ export function Chats({ roomId }: { roomId: string }) {
 
   /* ---------- 4. 画面の描画 ---------- */
 
-  if (!ready) return null;
-
-  // (a) ニックネーム入力（仮の入室フォーム）
-  if (!me) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-slate-100 p-4">
-        <form
-          className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const nickname = nameInput.trim();
-            if (!nickname) return;
-            const identity = { guestId: crypto.randomUUID(), nickname };
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
-            setMe(identity);
-          }}
-        >
-          <h1 className="text-lg font-bold">ニックネームを入力</h1>
-          <Input
-            value={nameInput}
-            maxLength={20}
-            placeholder="例：もえ"
-            onChange={(e) => setNameInput(e.target.value)}
-          />
-          <Button type="submit" className="w-full" disabled={!nameInput.trim()}>
-            入室
-          </Button>
-        </form>
-      </main>
-    );
-  }
-
-  // (b) 満員・消滅
+  // (a) 満員・消滅
   if (status === "gone" || status === "full") {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-2 bg-slate-100 p-4 text-center">
-        <p className="text-lg font-bold">
-          {status === "gone" ? "このルームは消滅しました" : "このルームは満員です"}
-        </p>
-        <p className="text-sm text-slate-500">
-          {status === "gone"
-            ? "メッセージはすべて削除されています。"
-            : "参加人数の上限に達しています。"}
-        </p>
-      </main>
-    );
+    return <RoomEnded reason={status} />;
   }
 
-  // (c) チャット本体
+  // (b) チャット本体
   // 自分を先頭に、サーバーから受け取った参加者を並べる
   const participants = [me, ...members.filter((p) => p.guestId !== me.guestId)];
 
+  // 参加者一覧と共有ファイル（PCは左サイドバー、スマホは下から出るシート）
+  const memberPanel = (
+    <div className="space-y-6">
+      <section>
+        <p className="mb-2 text-xs font-semibold text-ink-muted">
+          参加者 {formatMembers(memberCount, room?.maxMembers)}
+        </p>
+        <ul className="space-y-1">
+          {participants.map((p) => (
+            <li key={p.guestId} className="flex items-center gap-2.5 px-1 py-1.5 text-sm">
+              <InitialAvatar name={p.nickname} className="size-8" />
+              <span className="truncate">{p.nickname}</span>
+              {p.guestId === me.guestId && (
+                <span className="text-xs text-ink-muted">（あなた）</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+      <SharedFiles files={files} roomId={roomId} guestId={me.guestId} />
+    </div>
+  );
+
   return (
-    <div className="flex h-dvh bg-slate-100">
-      {/* 左サイドバー（PCのみ）：ルーム情報・残り時間・参加者一覧 */}
-      <aside className="hidden w-72 shrink-0 flex-col border-r bg-white md:flex">
-        <div className="flex items-center gap-2 border-b px-4 py-3">
-          {/* 管理者→/dashboard、ゲスト→退室確認になる予定。今は仮でトップへ */}
-          <Link
-            href="/"
-            className="rounded-md px-2 py-1 text-lg hover:bg-slate-100"
-            aria-label="戻る"
-          >
-            ←
-          </Link>
-          <h1 className="truncate text-base font-bold">
-            {room?.name ?? "読み込み中…"}
-          </h1>
-        </div>
+    // ナビゲーション：ロゴ／設定（管理者のみ）・退室。画面の高さに固定し、メッセージ一覧だけをスクロールする
+    <PageShell
+      className="h-dvh"
+      logoHref={isOwner ? "/dashboard" : undefined}
+      actions={
+        <>
+          {/* 管理者のみ：歯車アイコンからトークルームの設定へ */}
+          {isOwner && (
+            <Link
+              href={`/rooms/${roomId}/settings`}
+              aria-label="トークルームの設定"
+              title="トークルームの設定"
+              className="flex size-10 items-center justify-center rounded-full hover:bg-cloud-soft"
+            >
+              <Settings className="size-5" />
+            </Link>
+          )}
+          {/* 管理者→ダッシュボード、ゲスト→退室確認のうえ「退室しました」画面 */}
+          {isOwner ? (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-soft"
+            >
+              <LogOut className="size-5" aria-hidden />
+              退室
+            </Link>
+          ) : (
+            <LeaveRoomButton roomId={roomId} />
+          )}
+        </>
+      }
+    >
+      <div className="flex min-h-0 flex-1">
+        {/* 左サイドバー（PCのみ） */}
+        <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-line bg-card px-5 py-6 md:block">
+          {memberPanel}
+        </aside>
 
-        <div className="border-b px-4 py-5 text-center">
-          <p className="text-xs text-slate-400">消滅まで</p>
-          <p className="font-mono text-3xl font-bold tabular-nums text-rose-500">
-            {formatRemaining(room?.expiresAt, now)}
-          </p>
-        </div>
+        {/* ファイルをこの範囲にドラッグ＆ドロップしても共有できる */}
+        <div
+          className="relative flex min-w-0 flex-1 flex-col"
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault(); // これがないとドロップできない
+            setDragging(true);
+          }}
+          onDragLeave={(e) => {
+            // 子要素の上に移っただけのときは消さない
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+          }}
+          onDrop={(e) => {
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer.files[0];
+            if (file) upload(file);
+          }}
+        >
+          {dragging && (
+            <div className="pointer-events-none absolute inset-2 z-30 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-cloud bg-cloud-pale/90 text-ink">
+              <Upload className="size-8" aria-hidden />
+              <p className="text-sm font-medium">ここにドロップして共有</p>
+            </div>
+          )}
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <p className="mb-2 text-xs font-semibold text-slate-500">
-            参加者 {formatMembers(memberCount, room?.maxMembers)}
-          </p>
-          <ul className="space-y-1">
-            {participants.map((p) => (
-              <li
-                key={p.guestId}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm"
-              >
-                <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-300 text-xs font-bold text-slate-700"
-                  aria-hidden
+          {/* ルーム情報：ルーム名・人数と参加者・消える日 */}
+          <header className="bg-card px-5 pt-4 pb-5 md:px-8">
+            <div className="mx-auto max-w-3xl">
+              <h1 className="truncate text-2xl font-bold md:text-[28px]">
+                {room?.name ?? "読み込み中…"}
+              </h1>
+              <div className="mt-2 flex items-center gap-3">
+                <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">
+                  {formatMembers(memberCount, room?.maxMembers)}
+                  <span className="ml-3">{joinNames(participants)}</span>
+                </p>
+                {/* スマホ：サイドバーがないので、ボタンで参加者・共有ファイルを開く */}
+                <button
+                  type="button"
+                  onClick={() => setMembersOpen(true)}
+                  aria-label="参加者と共有ファイル"
+                  className="relative flex size-9 items-center justify-center rounded-full hover:bg-cloud-pale md:hidden"
                 >
-                  {p.nickname.slice(0, 1)}
-                </span>
-                <span className="truncate">{p.nickname}</span>
-                {p.guestId === me.guestId && (
-                  <span className="text-xs text-slate-400">（あなた）</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* ヘッダー：PCではルーム名と残り時間、スマホでは戻る・人数も表示 */}
-        <header className="flex items-center gap-3 border-b bg-white px-3 py-2 md:px-6 md:py-3">
-          <Link href="/" className="px-2 text-xl md:hidden" aria-label="戻る">
-            ←
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-bold md:text-lg">
-              {room?.name ?? "読み込み中…"}
-            </h2>
-            <p className="text-xs text-slate-500 md:hidden">
-              {formatMembers(memberCount, room?.maxMembers)}
-            </p>
-          </div>
-          <div className="text-right md:hidden">
-            <p className="text-[10px] text-slate-400">消滅まで</p>
-            <p className="font-mono text-sm font-bold tabular-nums text-rose-500">
-              {formatRemaining(room?.expiresAt, now)}
-            </p>
-          </div>
-        </header>
-
-        {status === "error" && (
-          <p className="bg-amber-100 px-3 py-1 text-center text-xs text-amber-800">
-            通信に失敗しました。再接続を試みています…
-          </p>
-        )}
-
-        {/* メッセージ一覧：自分は右・緑、他人は左・白＋丸アイコン */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 md:px-8 md:py-6">
-          <div className="mx-auto max-w-4xl space-y-3">
-            {messages.length === 0 && (
-              <p className="pt-10 text-center text-sm text-slate-400">
-                まだメッセージはありません。最初の一言をどうぞ。
-              </p>
-            )}
-            {messages.map((m) => {
-              const isMine = m.senderId === me.guestId;
-              return (
-                <div
-                  key={m.id}
-                  className={cn("flex items-end gap-2", isMine && "flex-row-reverse")}
-                >
-                  {!isMine && (
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-300 text-sm font-bold text-slate-700"
-                      aria-hidden
-                    >
-                      {m.nickname.slice(0, 1)}
-                    </div>
+                  <Users className="size-5" />
+                  {files.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-cloud px-1 text-[10px] font-bold">
+                      {files.length}
+                    </span>
                   )}
-                  <div
-                    className={cn(
-                      "flex max-w-[75%] flex-col md:max-w-[60%]",
-                      isMine && "items-end",
+                </button>
+              </div>
+              {/* 要件どおり、残り時間ではなく日付で表示する */}
+              <ExpiryDate
+                expiresAt={room?.expiresAt}
+                now={now}
+                className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-cloud-pale px-5 py-3"
+                labelClassName="text-xs"
+                dateClassName="text-2xl font-bold md:text-[28px]"
+              />
+            </div>
+          </header>
+
+          {status === "error" && (
+            <p className="bg-amber-100 px-3 py-1 text-center text-xs text-amber-800">
+              通信に失敗しました。再接続を試みています…
+            </p>
+          )}
+
+          {/* メッセージ一覧：自分は右・水色、他人は左・白＋丸アイコン */}
+          <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8">
+            <div className="mx-auto max-w-3xl space-y-5">
+              {messages.length === 0 && (
+                <p className="pt-10 text-center text-sm text-ink-muted">
+                  まだメッセージはありません。最初の一言をどうぞ。
+                </p>
+              )}
+              {messages.map((m, i) => {
+                const isMine = m.senderId === me.guestId;
+                // 前のメッセージと日付が変わったら「今日　10月24日(土)」の区切りを出す
+                const showDay = i === 0 || !isSameDay(messages[i - 1].sentAt, m.sentAt);
+                return (
+                  <div key={m.id}>
+                    {showDay && (
+                      <p className="mb-5 text-center text-xs text-ink-muted">
+                        {formatDayLabel(m.sentAt, now)}
+                      </p>
                     )}
-                  >
-                    {!isMine && (
-                      <span className="mb-0.5 px-1 text-xs text-slate-500">
-                        {m.nickname}
-                      </span>
-                    )}
-                    <div
-                      className={cn("flex items-end gap-1.5", isMine && "flex-row-reverse")}
-                    >
-                      <p
+                    <div className={cn("flex items-start gap-3", isMine && "justify-end")}>
+                      {!isMine && <InitialAvatar name={m.nickname} className="size-9" />}
+                      <div
                         className={cn(
-                          "whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm",
-                          isMine
-                            ? "rounded-br-sm bg-emerald-500 text-white"
-                            : "rounded-bl-sm bg-white text-slate-900",
+                          "flex max-w-[82%] flex-col md:max-w-[65%]",
+                          isMine && "items-end",
                         )}
                       >
-                        {m.body}
-                      </p>
-                      <time className="shrink-0 text-[10px] text-slate-400">
-                        {formatTime(m.sentAt)}
-                      </time>
+                        <p className="mb-1 px-1 text-xs text-ink-muted">
+                          {m.nickname}
+                          {isMine && "（あなた）"}
+                          <time className="ml-3 tabular-nums">{formatTime(m.sentAt)}</time>
+                        </p>
+                        {m.file ? (
+                          // ファイル共有のメッセージは、吹き出しの代わりにファイルのカードを出す
+                          <FileAttachment
+                            file={m.file}
+                            roomId={roomId}
+                            guestId={me.guestId}
+                            isMine={isMine}
+                          />
+                        ) : (
+                          <p
+                            className={cn(
+                              "whitespace-pre-wrap break-words rounded-3xl px-5 py-3 text-[15px] leading-relaxed",
+                              isMine ? "bg-cloud-soft" : "bg-card",
+                            )}
+                          >
+                            {m.body}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            <div ref={bottomRef} />
+                );
+              })}
+              <div ref={bottomRef} />
+            </div>
           </div>
-        </div>
 
-        {/* 入力欄 */}
-        <div className="border-t bg-white p-3 md:px-8 md:py-4">
-          <div className="mx-auto flex max-w-4xl items-end gap-2">
-            {/* 「＋」メニュー（消えるノート／ファイル共有）は後で実装 */}
-            <Button type="button" variant="outline" size="icon" disabled aria-label="メニュー">
-              ＋
-            </Button>
-            <textarea
-              value={text}
-              rows={1}
-              maxLength={1000}
-              placeholder="メッセージを入力（Enterで送信 / Shift+Enterで改行）"
-              className="max-h-32 min-h-9 flex-1 resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
-              onChange={(e) => setText(e.target.value)}
-              onCompositionStart={() => (composing.current = true)}
-              onCompositionEnd={() => (composing.current = false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !composing.current) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-            />
-            <Button type="button" onClick={send} disabled={sending || !text.trim()}>
-              送信
-            </Button>
+          {/* 入力欄 */}
+          <div className="border-t border-line bg-card px-4 pt-3 pb-3 md:px-8">
+            <div className="mx-auto max-w-3xl">
+              <UploadStatus
+                uploading={uploading}
+                error={uploadError}
+                onCloseError={clearError}
+              />
+
+              {/* 消えるノート（準備中）・ファイル共有 */}
+              <div className="mb-3 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  disabled
+                  title="準備中"
+                  className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-cloud-pale text-[15px] disabled:opacity-60"
+                >
+                  <NotebookPen className="size-5" aria-hidden />
+                  消えるノート
+                </button>
+                <button
+                  type="button"
+                  disabled={!!uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-cloud-pale text-[15px] transition hover:bg-cloud-soft disabled:opacity-60"
+                >
+                  <Paperclip className="size-5" aria-hidden />
+                  ファイル共有
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) upload(file);
+                    e.target.value = ""; // 同じファイルをもう一度選べるように空にする
+                  }}
+                />
+              </div>
+
+              <div className="flex items-end gap-3">
+                {/* 「＋」メニュー：ファイル共有（消えるノートは準備中） */}
+                <AttachMenu onSelectFile={upload} disabled={!!uploading} />
+                <textarea
+                  value={text}
+                  rows={1}
+                  maxLength={1000}
+                  placeholder="メッセージを入力…"
+                  aria-label="メッセージ（Enterで送信 / Shift+Enterで改行）"
+                  className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-line bg-paper px-4 py-2.5 text-[15px] outline-none placeholder:text-ink-muted focus:border-cloud"
+                  onChange={(e) => setText(e.target.value)}
+                  onCompositionStart={() => (composing.current = true)}
+                  onCompositionEnd={() => (composing.current = false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !composing.current) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={send}
+                  disabled={sending || !text.trim()}
+                  aria-label="送信"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-cloud transition hover:bg-cloud-strong disabled:opacity-50"
+                >
+                  <SendHorizontal className="size-5" />
+                </button>
+              </div>
+
+              <p className="mt-3 text-center text-xs text-ink-muted">
+                期限がくると、会話・ノート・ファイルは消えます。
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <BottomSheet
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
+        label="参加者と共有ファイル"
+      >
+        {memberPanel}
+      </BottomSheet>
+    </PageShell>
   );
 }

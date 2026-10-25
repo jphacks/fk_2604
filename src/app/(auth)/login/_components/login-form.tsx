@@ -63,6 +63,11 @@ export function LoginForm() {
           {pending ? "確認中…" : "次へ"}
         </Button>
       </CardFooter>
+      {state.message && (
+        <p role="status" className="px-6 pb-4 text-sm text-muted-foreground">
+          {state.message}
+        </p>
+      )}
     </form>
   );
 }

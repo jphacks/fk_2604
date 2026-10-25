@@ -20,7 +20,7 @@ export default function SignupPage() {
         <CardHeader className="border-b text-center">
           <CardTitle className="text-lg font-semibold">新規登録</CardTitle>
           <CardDescription>
-            管理者アカウントを作成します。次の画面で認証アプリを設定します
+            管理者アカウントを作成します
           </CardDescription>
         </CardHeader>
         <SignupForm />
