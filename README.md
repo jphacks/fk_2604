@@ -167,7 +167,8 @@
 - **ファイル共有機能**
   - 講義などで一時的に共有したいファイルを送信できます。
   - 受け取った相手はファイルのダウンロードやプレビューが可能です。
-      <img src="docs/images/share-file.png" alt="スマホ画面" width="300">
+    
+      <img src="docs/images/share-file.png" alt="スマホ画面" width="2871" height="1687">
   
 ## 開発技術
 
