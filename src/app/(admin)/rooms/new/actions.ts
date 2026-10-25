@@ -1,25 +1,22 @@
 "use server";
 
+import { createHash, randomBytes } from "node:crypto";
 import { headers } from "next/headers";
-
-import { createRoom as createDevRoom } from "@/lib/dev-store";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { endOfDayJst, validateRoomPeriod } from "@/lib/room-period";
 import { ROOM_NAME_MAX_LENGTH } from "./constants";
 
 export type CreateRoomState = {
-  errors?: {
-    name?: string;
-    period?: string;
-  };
-  // 入力エラー時にフォームへ戻す値
-  fields?: {
-    name: string;
-  };
-  created?: {
-    inviteToken: string;
-    inviteUrl: string;
-  };
+  errors?: { name?: string; period?: string };
+  fields?: { name: string };
+  created?: { roomId: string; inviteToken: string; inviteUrl: string };
+  message?: string;
 };
+
+function toIsoStart(date: string) {
+  return `${date}T00:00:00+09:00`;
+}
 
 export async function createRoom(
   _prevState: CreateRoomState,
@@ -28,7 +25,6 @@ export async function createRoom(
   const name = String(formData.get("name") ?? "").trim();
   const startDate = String(formData.get("startDate") ?? "");
   const endDate = String(formData.get("endDate") ?? "");
-
   const errors: CreateRoomState["errors"] = {
     name: !name
       ? "ルーム名を入力してください"
@@ -37,25 +33,46 @@ export async function createRoom(
         : undefined,
     period: validateRoomPeriod(startDate, endDate),
   };
-  if (errors.name || errors.period) {
-    return { errors, fields: { name } };
+  if (errors.name || errors.period) return { errors, fields: { name } };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.is_anonymous) redirect("/login");
+
+  const startsAt = toIsoStart(startDate);
+  const expiresAt = new Date(endOfDayJst(endDate)).toISOString();
+  const { data: room, error: roomError } = await supabase
+    .from("rooms")
+    .insert({
+      owner_id: user.id,
+      name,
+      starts_at: startsAt,
+      expires_at: expiresAt,
+      max_members: null,
+    })
+    .select("id")
+    .single();
+  if (roomError || !room) {
+    return { message: "ルームを作成できませんでした", fields: { name } };
   }
 
-  // TODO: Supabase / Redis 接続後に差し替える
-  // - ログイン中の管理者IDを owner として保存
-  // - 招待トークンを発行（毎日0:00 JSTで更新。古いトークンでは入室不可）
-  //   入室画面は Supabase の room_invites でトークンを照合するため、
-  //   ここで issue_room_invite を呼ぶまでは「閉じる」の先の入室画面で弾かれる
-  createDevRoom(name, startDate, endOfDayJst(endDate));
-  const inviteToken = crypto.randomUUID().replaceAll("-", "");
+  const inviteToken = randomBytes(32).toString("base64url");
+  const tokenHash = createHash("sha256").update(inviteToken).digest("hex");
+  const { error: inviteError } = await supabase.rpc("issue_room_invite", {
+    p_room_id: room.id,
+    p_token_hash: tokenHash,
+    p_expires_at: expiresAt,
+  });
+  if (inviteError) {
+    await supabase.from("rooms").delete().eq("id", room.id);
+    return { message: "招待URLを発行できませんでした", fields: { name } };
+  }
 
-  const h = await headers();
-  const origin = h.get("origin") ?? `https://${h.get("host")}`;
-
+  const requestHeaders = await headers();
+  const origin =
+    requestHeaders.get("origin") ??
+    `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host")}`;
   return {
-    created: {
-      inviteToken,
-      inviteUrl: `${origin}/join/${inviteToken}`,
-    },
+    created: { roomId: room.id, inviteToken, inviteUrl: `${origin}/join/${inviteToken}` },
   };
 }

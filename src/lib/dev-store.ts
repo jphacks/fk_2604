@@ -1,67 +1,61 @@
 import type { Message, RoomInfo } from "./types";
 
 /**
- * 開発用のメモリ上ストア（Redis結合までの仮置き）。
- * - サーバーを再起動すると消える（＝エフェメラルの動作確認にはちょうど良い）
- * - Next.jsの開発サーバーはファイル更新でモジュールが再読込されるため、
- *   globalThis に載せて状態を保つ
- * 後で lib/redis/ の実装に差し替える。関数名は変えないこと。
+ * Temporary message-only store until the Redis migration is implemented.
+ * Room creation and authorization use Supabase, not this store.
  */
 type DevRoom = {
   info: RoomInfo;
-  startDate?: string; // 利用期間の開始日 "YYYY-MM-DD"（期限延長で最大日数を判定するのに使う）
-  members: Map<string, string>; // guestId -> nickname
+  startDate?: string;
+  members: Map<string, string>;
   messages: Message[];
 };
 
 const g = globalThis as unknown as { __devRooms?: Map<string, DevRoom> };
 const rooms = (g.__devRooms ??= new Map<string, DevRoom>());
 
-export function getRoom(roomId: string): DevRoom | null {
-  let room = rooms.get(roomId);
-  // 動作確認用：未作成のIDは「人数上限なし・3時間」のルームとして自動作成
-  if (!room) {
-    room = {
-      info: {
-        id: roomId,
-        name: "誕生日サプライズ会議",
-        maxMembers: null,
-        expiresAt: Date.now() + 3 * 60 * 60 * 1000,
-      },
-      members: new Map(),
-      messages: [],
-    };
-    rooms.set(roomId, room);
-  }
-  if (room.info.expiresAt <= Date.now()) {
-    rooms.delete(roomId);
-    return null; // 期限切れ＝消滅
-  }
-  return room;
-}
-
-/** ルーム作成（新規ルーム作成画面から呼ぶ）。人数上限なし */
-export function createRoom(name: string, startDate: string, expiresAt: number): RoomInfo {
+export function createRoom(
+  name: string,
+  startDate: string,
+  expiresAt: number,
+): RoomInfo {
   const info: RoomInfo = {
     id: crypto.randomUUID(),
     name,
     maxMembers: null,
+    startsAt: Date.parse(`${startDate}T00:00:00+09:00`),
     expiresAt,
   };
   rooms.set(info.id, { info, startDate, members: new Map(), messages: [] });
   return info;
 }
 
-/** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
+export function getRoom(roomId: string): DevRoom | null {
+  const room = rooms.get(roomId);
+  if (!room || room.info.expiresAt <= Date.now()) return null;
+  return room;
+}
+
 export function addMember(room: DevRoom, guestId: string, nickname: string) {
   if (room.members.has(guestId)) {
     room.members.set(guestId, nickname);
     return true;
   }
-  const max = room.info.maxMembers;
-  if (max !== null && room.members.size >= max) return false;
+  if (room.info.maxMembers !== null && room.members.size >= room.info.maxMembers) {
+    return false;
+  }
   room.members.set(guestId, nickname);
   return true;
+}
+
+export function getMessageRoom(roomId: string, info: RoomInfo): DevRoom {
+  let room = rooms.get(roomId);
+  if (!room) {
+    room = { info, members: new Map(), messages: [] };
+    rooms.set(roomId, room);
+  }
+  room.info = info;
+  return room;
 }
 
 export function pushMessage(
@@ -70,19 +64,18 @@ export function pushMessage(
   nickname: string,
   body: string,
 ): Message {
-  const msg: Message = {
+  const message: Message = {
     id: crypto.randomUUID(),
     senderId,
     nickname,
     body,
     sentAt: Date.now(),
   };
-  room.messages.push(msg);
+  room.messages.push(message);
   if (room.messages.length > 500) room.messages.shift();
-  return msg;
+  return message;
 }
 
-/** cursor（配列の添字）以降のメッセージを返す */
 export function listMessages(room: DevRoom, cursor: number) {
   return {
     messages: room.messages.slice(cursor),

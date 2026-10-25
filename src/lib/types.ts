@@ -10,6 +10,7 @@ export type RoomInfo = {
   id: string;
   name: string;
   maxMembers: number | null; // null = 上限なし
+  startsAt: number;
   expiresAt: number; // epoch ms
 };
 

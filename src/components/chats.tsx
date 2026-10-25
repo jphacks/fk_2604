@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatExpiryDate, formatTime } from "@/lib/format";
 import type { Member, Message, MessagesResponse, RoomInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { createClient as createSupabaseClient } from "@/lib/supabase/browser";
 
 /* ============================================================
  * chats.tsx：チャット画面（S-09）に必要な機能をすべて集約したファイル
  *  1. 定数・型
- *  2. 小さな関数（時刻・残り時間の整形）
+ *  2. 小さな関数（人数の整形。時刻・消滅日は lib/format.ts）
  *  3. ページ本体（状態管理・通信）
  *  4. 画面の描画（ニックネーム入力 / 満員・消滅 / チャット）
  * ============================================================ */
@@ -20,31 +22,13 @@ import { cn } from "@/lib/utils";
 type Identity = Member;
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
-const STORAGE_KEY = "ephemeral-chat:identity";
 const POLL_MS = 2500; // 新着を取りに行く間隔
 
 /* ---------- 2. 小さな関数 ---------- */
 
-function formatTime(ms: number) {
-  return new Date(ms).toLocaleTimeString("ja-JP", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 // 上限なしなら「4 人」、上限ありなら「4 / 10 人」
 function formatMembers(count: number, max: number | null | undefined) {
   return max ? `${count} / ${max} 人` : `${count} 人`;
-}
-
-function formatRemaining(expiresAt: number | undefined, now: number) {
-  if (!expiresAt) return "--:--:--";
-  const s = Math.floor(Math.max(0, expiresAt - now) / 1000);
-  const d = Math.floor(s / 86400);
-  const h = String(Math.floor((s % 86400) / 3600)).padStart(2, "0");
-  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-  const sec = String(s % 60).padStart(2, "0");
-  return `${d > 0 ? `${d}日 ` : ""}${h}:${m}:${sec}`;
 }
 
 /* ---------- 3. ページ本体 ---------- */
@@ -65,33 +49,27 @@ export function Chats({ roomId }: { roomId: string }) {
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
 
   const cursor = useRef(0); // どこまでメッセージを受け取ったか
   const fetching = useRef(false); // 取得の二重実行を防ぐ（同じメッセージが重複するため）
   const composing = useRef(false); // 日本語変換中のEnterを送信と誤認しないため
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // --- ブラウザに保存した一時ID＋ニックネームを読み込む ---
-  // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
-  // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) setMe(JSON.parse(saved));
-    } catch {}
-    setReady(true);
+    const supabase = createSupabaseClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setMe({ guestId: data.user.id, nickname: "" });
+      }
+      setReady(true);
+    });
   }, []);
 
   // --- 新着メッセージの取得 ---
   const fetchNew = useCallback(async () => {
     if (!me || fetching.current) return;
     fetching.current = true;
-    const qs = new URLSearchParams({
-      guestId: me.guestId,
-      nickname: me.nickname,
-      cursor: String(cursor.current),
-    });
+    const qs = new URLSearchParams({ cursor: String(cursor.current) });
     try {
       const res = await fetch(`/api/rooms/${roomId}/messages?${qs}`, {
         cache: "no-store",
@@ -104,6 +82,12 @@ export function Chats({ roomId }: { roomId: string }) {
       setRoom(data.room);
       setMemberCount(data.memberCount);
       setMembers(data.members);
+      const currentMember = data.members.find(
+        (member) => member.guestId === me.guestId,
+      );
+      if (currentMember && currentMember.nickname !== me.nickname) {
+        setMe(currentMember);
+      }
       setStatus("ok");
       if (data.messages.length > 0) {
         setMessages((prev) => {
@@ -121,16 +105,13 @@ export function Chats({ roomId }: { roomId: string }) {
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
     if (!me) return;
-    fetchNew();
+    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
     const t = setInterval(fetchNew, POLL_MS);
-    return () => clearInterval(t);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(t);
+    };
   }, [fetchNew, me]);
-
-  // カウントダウン用に1秒ごとに現在時刻を更新
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
 
   // 新着が来たら一番下までスクロール
   useEffect(() => {
@@ -169,7 +150,6 @@ export function Chats({ roomId }: { roomId: string }) {
             const nickname = nameInput.trim();
             if (!nickname) return;
             const identity = { guestId: crypto.randomUUID(), nickname };
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
             setMe(identity);
           }}
         >
@@ -210,7 +190,7 @@ export function Chats({ roomId }: { roomId: string }) {
 
   return (
     <div className="flex h-dvh bg-slate-100">
-      {/* 左サイドバー（PCのみ）：ルーム情報・残り時間・参加者一覧 */}
+      {/* 左サイドバー（PCのみ）：ルーム情報・消滅日・参加者一覧 */}
       <aside className="hidden w-72 shrink-0 flex-col border-r bg-white md:flex">
         <div className="flex items-center gap-2 border-b px-4 py-3">
           {/* 管理者→/dashboard、ゲスト→退室確認になる予定。今は仮でトップへ */}
@@ -227,9 +207,12 @@ export function Chats({ roomId }: { roomId: string }) {
         </div>
 
         <div className="border-b px-4 py-5 text-center">
-          <p className="text-xs text-slate-400">消滅まで</p>
-          <p className="font-mono text-3xl font-bold tabular-nums text-rose-500">
-            {formatRemaining(room?.expiresAt, now)}
+          <p className="text-xs text-slate-400">消滅日</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-rose-500">
+            {formatExpiryDate(room?.expiresAt, "long")}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {room ? `${formatTime(room.expiresAt)} に消滅` : ""}
           </p>
         </div>
 
@@ -260,7 +243,7 @@ export function Chats({ roomId }: { roomId: string }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* ヘッダー：PCではルーム名と残り時間、スマホでは戻る・人数も表示 */}
+        {/* ヘッダー：PCではルーム名、スマホでは戻る・人数・消滅日も表示 */}
         <header className="flex items-center gap-3 border-b bg-white px-3 py-2 md:px-6 md:py-3">
           <Link href="/" className="px-2 text-xl md:hidden" aria-label="戻る">
             ←
@@ -274,9 +257,9 @@ export function Chats({ roomId }: { roomId: string }) {
             </p>
           </div>
           <div className="text-right md:hidden">
-            <p className="text-[10px] text-slate-400">消滅まで</p>
-            <p className="font-mono text-sm font-bold tabular-nums text-rose-500">
-              {formatRemaining(room?.expiresAt, now)}
+            <p className="text-[10px] text-slate-400">消滅日</p>
+            <p className="text-sm font-bold tabular-nums text-rose-500">
+              {formatExpiryDate(room?.expiresAt, "short")}
             </p>
           </div>
         </header>
