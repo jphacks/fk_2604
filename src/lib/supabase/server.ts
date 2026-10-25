@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 
 export async function createClient() {
   const cookieStore = await cookies();
-
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -18,8 +17,7 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Server Components cannot always write cookies. Middleware
-            // refreshes the session when a response can set them.
+            // Server Components may not always be able to write cookies.
           }
         },
       },
