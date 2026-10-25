@@ -11,8 +11,6 @@ import {
   Upload,
   Users,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { AttachMenu } from "@/components/chat/attach-menu";
 import { FileAttachment } from "@/components/chat/file-attachment";
 import { SharedFiles } from "@/components/chat/shared-files";
@@ -39,15 +37,13 @@ import { cn } from "@/lib/utils";
  *  1. 定数・型
  *  2. 小さな関数（人数・日付区切りは components/common/format.ts、時刻は lib/format.ts）
  *  3. ページ本体（状態管理・通信）
- *  4. 画面の描画（ニックネーム入力 / 満員・消滅 / チャット）
+ *  4. 画面の描画（満員・消滅 / チャット）
  * ============================================================ */
 
 /* ---------- 1. 定数・型 ---------- */
 
-type Identity = Member;
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
-const STORAGE_KEY = "ephemeral-chat:identity";
 const POLL_MS = 2500; // 新着を取りに行く間隔
 
 /* ---------- 2. 小さな関数 ---------- */
@@ -59,20 +55,20 @@ function joinNames(people: Member[]) {
 
 /* ---------- 3. ページ本体 ---------- */
 
-// roomId・isOwner は app/rooms/[roomId]/page.tsx から受け取る
+// roomId・me・isOwner は app/rooms/[roomId]/page.tsx から受け取る
+// me：ログイン中のユーザーID＋招待リンクの入室時に登録したニックネーム
 // isOwner：ルームの作成者なら true（設定ボタンを表示する）
 export function Chats({
   roomId,
+  me,
   isOwner = false,
 }: {
   roomId: string;
+  me: Member;
   isOwner?: boolean;
 }) {
 
   // --- 状態 ---
-  const [me, setMe] = useState<Identity | null>(null);
-  const [ready, setReady] = useState(false); // localStorageの確認が終わったか
-  const [nameInput, setNameInput] = useState("");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [room, setRoom] = useState<RoomInfo | null>(null);
@@ -93,20 +89,9 @@ export function Chats({
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); // 「ファイル共有」ボタン用
 
-  // --- ブラウザに保存した一時ID＋ニックネームを読み込む ---
-  // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
-  // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) setMe(JSON.parse(saved));
-    } catch {}
-    setReady(true);
-  }, []);
-
   // --- 新着メッセージの取得 ---
   const fetchNew = useCallback(async () => {
-    if (!me || fetching.current) return;
+    if (fetching.current) return;
     fetching.current = true;
     const qs = new URLSearchParams({
       guestId: me.guestId,
@@ -143,11 +128,13 @@ export function Chats({
 
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
-    if (!me) return;
-    fetchNew();
+    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
     const t = setInterval(fetchNew, POLL_MS);
-    return () => clearInterval(t);
-  }, [fetchNew, me]);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(t);
+    };
+  }, [fetchNew]);
 
   // --- ファイル共有 ---
   // アップロードが終わったら、すぐ新着を取りに行ってチャットに反映する
@@ -165,7 +152,7 @@ export function Chats({
   // --- 送信 ---
   async function send() {
     const body = text.trim();
-    if (!me || !body || sending) return;
+    if (!body || sending) return;
     setSending(true);
     const res = await fetch(`/api/rooms/${roomId}/messages`, {
       method: "POST",
@@ -181,44 +168,12 @@ export function Chats({
 
   /* ---------- 4. 画面の描画 ---------- */
 
-  if (!ready) return null;
-
-  // (a) ニックネーム入力（仮の入室フォーム）
-  if (!me) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-paper p-4 text-ink">
-        <form
-          className="w-full max-w-sm space-y-4 rounded-3xl bg-card p-6 shadow-sm"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const nickname = nameInput.trim();
-            if (!nickname) return;
-            const identity = { guestId: crypto.randomUUID(), nickname };
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
-            setMe(identity);
-          }}
-        >
-          <h1 className="text-lg font-bold">ニックネームを入力</h1>
-          <Input
-            value={nameInput}
-            maxLength={20}
-            placeholder="例：もえ"
-            onChange={(e) => setNameInput(e.target.value)}
-          />
-          <Button type="submit" size="lg" className="w-full" disabled={!nameInput.trim()}>
-            入室
-          </Button>
-        </form>
-      </main>
-    );
-  }
-
-  // (b) 満員・消滅
+  // (a) 満員・消滅
   if (status === "gone" || status === "full") {
     return <RoomEnded reason={status} />;
   }
 
-  // (c) チャット本体
+  // (b) チャット本体
   // 自分を先頭に、サーバーから受け取った参加者を並べる
   const participants = [me, ...members.filter((p) => p.guestId !== me.guestId)];
 

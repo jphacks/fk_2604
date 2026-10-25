@@ -1,12 +1,12 @@
-import { Chats } from "@/components/chats";
+import { redirect } from "next/navigation";
 
-// 管理者ページ。現時点ではログインなしの参加者と同じチャット画面を表示する
+// 旧URL。認証・ニックネームは /rooms/[roomId] 側で扱うので、そちらへ転送する
 // Next.js 16 では params は Promise なので await が必要
-export default async function RoomAdminPage({
+export default async function RoomAdminRedirect({
   params,
 }: {
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = await params;
-  return <Chats roomId={roomId} isOwner />;
+  redirect(`/rooms/${roomId}`);
 }
