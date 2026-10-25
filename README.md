@@ -61,7 +61,7 @@
 
 <!-- 仮の画像: ルーム作成画面（カレンダーで利用期間を選ぶところ） -->
 <p align="center">
-  <img width="2849" height="1669" alt="image" src="https://github.com/user-attachments/assets/d07bab2a-e6ac-4ab5-a66a-e15024c6cf1e" />
+  <img width="2849" height="1669" alt="image" src="docs/images/chat_create.png" />
 </p>
 
 - **そもそも残さない設計**
