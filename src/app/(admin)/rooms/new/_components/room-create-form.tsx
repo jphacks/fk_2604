@@ -100,7 +100,7 @@ export function RoomCreateForm() {
 
         <p className="flex gap-2.5 rounded-xl bg-sun px-5 py-4 text-xs leading-relaxed text-ink-muted">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          作成すると、招待URLが表示されます。期限がくると、会話・ノート・ファイルはすべて消えます。
+          作成すると、招待URLが表示されます。期限がくると、会話・ファイルはすべて消えます。
         </p>
 
         {/* 入力は正しいが、ルームの作成や招待URLの発行に失敗したとき */}

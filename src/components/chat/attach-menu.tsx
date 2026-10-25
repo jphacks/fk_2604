@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { NotebookPen, Paperclip, Plus } from "lucide-react";
+import { Paperclip, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * 入力欄の左にある「＋」ボタンと、押すと開くメニュー（要件定義 S-09）。
  *  - ファイル共有 … ファイル選択の画面を開く
- *  - 消えるノート … まだ作っていないので「準備中」
  *
  * ファイル選択には、見えない <input type="file"> を使い、
  * メニューを押したときに click() で開いている。
@@ -73,18 +72,6 @@ export function AttachMenu({
               <Paperclip className="size-4" />
             </span>
             ファイル共有
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            disabled
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left opacity-50"
-          >
-            <span className="flex size-8 items-center justify-center rounded-full bg-cloud-pale">
-              <NotebookPen className="size-4" />
-            </span>
-            消えるノート
-            <span className="ml-auto text-xs text-ink-muted">準備中</span>
           </button>
         </div>
       )}

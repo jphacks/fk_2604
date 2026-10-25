@@ -4,17 +4,20 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LogOut,
+  PanelRightClose,
+  PanelRightOpen,
   SendHorizontal,
   Settings,
   Upload,
   Users,
 } from "lucide-react";
+import { CloudIcon } from "@/components/brand/cloud-icon";
 import { AttachMenu } from "@/components/chat/attach-menu";
 import { FileAttachment } from "@/components/chat/file-attachment";
-import { SharedFiles } from "@/components/chat/shared-files";
+import { RoomSidePanel, type SidePanelTab } from "@/components/chat/room-side-panel";
 import { UploadStatus } from "@/components/chat/upload-status";
 import { BottomSheet } from "@/components/common/bottom-sheet";
-import { formatDayLabel, formatMembers, isSameDay } from "@/components/common/format";
+import { formatDayLabel, isSameDay } from "@/components/common/format";
 import { InitialAvatar } from "@/components/common/initial-avatar";
 import { PageShell } from "@/components/layout/page-shell";
 import { ExpiryDate } from "@/components/room/expiry-date";
@@ -35,6 +38,7 @@ import { cn } from "@/lib/utils";
  * chats.tsx：チャット画面（S-09）に必要な機能をすべて集約したファイル
  *  1. 定数・型
  *  2. 小さな関数（人数・日付区切りは components/common/format.ts、時刻は lib/format.ts）
+ *     右側の参加者・共有ファイルのパネルは components/chat/room-side-panel.tsx
  *  3. ページ本体（状態管理・通信）
  *  4. 画面の描画（満員・消滅 / チャット）
  * ============================================================ */
@@ -44,13 +48,6 @@ import { cn } from "@/lib/utils";
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
 const POLL_MS = 2500; // 新着を取りに行く間隔
-
-/* ---------- 2. 小さな関数 ---------- */
-
-// 参加者の名前を「はる・ゆい・けん」のようにつなげる
-function joinNames(people: Member[]) {
-  return people.map((p) => p.nickname).join("・");
-}
 
 /* ---------- 3. ページ本体 ---------- */
 
@@ -77,10 +74,13 @@ export function Chats({
   const [status, setStatus] = useState<Status>("loading");
   const [dragging, setDragging] = useState(false); // ファイルをドラッグ中か
   const [membersOpen, setMembersOpen] = useState(false); // スマホの参加者・共有ファイル一覧
+  const [panelOpen, setPanelOpen] = useState(true); // PCの右パネルを表示しているか
+  const [panelTab, setPanelTab] = useState<SidePanelTab>("members");
   const [now, setNow] = useState(0); // 「今日」の判定用。取得のたびに更新する
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [pops, setPops] = useState<number[]>([]); // 送信ボタンから飛んでいく小さな雲（演出用のID）
 
   const cursor = useRef(0); // どこまでメッセージを受け取ったか
   const fetching = useRef(false); // 取得の二重実行を防ぐ（同じメッセージが重複するため）
@@ -152,6 +152,11 @@ export function Chats({
     const body = text.trim();
     if (!body || sending) return;
     setSending(true);
+    // 送信ボタンから小さな雲をポンと飛ばす。アニメーション（0.7秒）が終わったら消す
+    // 動きを減らす設定の人には表示しない（motion-reduce:hidden）ので、終了イベントではなくタイマーで消す
+    const pop = Date.now();
+    setPops((prev) => [...prev, pop]);
+    window.setTimeout(() => setPops((prev) => prev.filter((p) => p !== pop)), 700);
     const res = await fetch(`/api/rooms/${roomId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -175,38 +180,74 @@ export function Chats({
   // 自分を先頭に、サーバーから受け取った参加者を並べる
   const participants = [me, ...members.filter((p) => p.guestId !== me.guestId)];
 
-  // 参加者一覧と共有ファイル（PCは左サイドバー、スマホは下から出るシート）
-  const memberPanel = (
-    <div className="space-y-6">
-      <section>
-        <p className="mb-2 text-xs font-semibold text-ink-muted">
-          参加者 {formatMembers(memberCount, room?.maxMembers)}
-        </p>
-        <ul className="space-y-1">
-          {participants.map((p) => (
-            <li key={p.guestId} className="flex items-center gap-2.5 px-1 py-1.5 text-sm">
-              <InitialAvatar name={p.nickname} className="size-8" />
-              <span className="truncate">{p.nickname}</span>
-              {p.guestId === me.guestId && (
-                <span className="text-xs text-ink-muted">（あなた）</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <SharedFiles files={files} roomId={roomId} guestId={me.guestId} />
-    </div>
+  // 参加者・共有ファイルのタブ（PCは右の欄、スマホは下から出るシート）
+  const sidePanel = (
+    <RoomSidePanel
+      tab={panelTab}
+      onTabChange={setPanelTab}
+      participants={participants}
+      me={me}
+      isOwner={isOwner}
+      memberCount={memberCount}
+      maxMembers={room?.maxMembers}
+      files={files}
+      roomId={roomId}
+    />
   );
 
   return (
-    // ナビゲーション：ロゴ／設定（管理者のみ）・退室。画面の高さに固定し、メッセージ一覧だけをスクロールする
-    // チャットを広く見せるため、ヘッダーは 60px に詰める
+    // ナビゲーション：雲のアイコン／ルーム名・消える日時／パネル開閉・設定（管理者のみ）・退室
+    // 画面の高さに固定し、メッセージ一覧だけをスクロールする。チャットを広く見せるため、ヘッダーは 60px に詰める
     <PageShell
       className="h-dvh"
-      headerClassName="h-[60px] md:h-[60px]"
+      headerClassName="h-[60px] md:h-[60px] md:px-8"
       logoHref={isOwner ? "/dashboard" : undefined}
+      logoIconOnly
+      headerCenter={
+        <>
+          <h1 className="truncate text-base font-bold leading-snug md:text-lg">
+            {room?.name ?? "読み込み中…"}
+          </h1>
+          {/* 要件どおり、残り時間ではなく日時で表示する */}
+          <ExpiryDate
+            expiresAt={room?.expiresAt}
+            now={now}
+            className="justify-center text-[11px]"
+          />
+        </>
+      }
       actions={
         <>
+          {/* スマホ：右の欄がないので、ボタンで参加者・共有ファイルのシートを開く */}
+          <button
+            type="button"
+            onClick={() => setMembersOpen(true)}
+            aria-label="参加者と共有ファイル"
+            className="relative flex size-10 items-center justify-center rounded-full hover:bg-cloud-soft md:hidden"
+          >
+            <Users className="size-5" />
+            {files.length > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-cloud px-1 text-[10px] font-bold">
+                {files.length}
+              </span>
+            )}
+          </button>
+          {/* PC：右の参加者・共有ファイル欄をしまう／出す */}
+          <button
+            type="button"
+            onClick={() => setPanelOpen((v) => !v)}
+            aria-expanded={panelOpen}
+            aria-controls="room-side-panel"
+            aria-label={panelOpen ? "参加者・共有ファイルをしまう" : "参加者・共有ファイルを表示"}
+            title={panelOpen ? "参加者・共有ファイルをしまう" : "参加者・共有ファイルを表示"}
+            className="hidden size-10 items-center justify-center rounded-full hover:bg-cloud-soft md:flex"
+          >
+            {panelOpen ? (
+              <PanelRightClose className="size-5" />
+            ) : (
+              <PanelRightOpen className="size-5" />
+            )}
+          </button>
           {/* 管理者のみ：歯車アイコンからトークルームの設定へ */}
           {isOwner && (
             <Link
@@ -234,11 +275,6 @@ export function Chats({
       }
     >
       <div className="flex min-h-0 flex-1">
-        {/* 左サイドバー（PCのみ） */}
-        <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-line bg-card px-5 py-6 md:block">
-          {memberPanel}
-        </aside>
-
         {/* ファイルをこの範囲にドラッグ＆ドロップしても共有できる */}
         <div
           className="relative flex min-w-0 flex-1 flex-col"
@@ -266,49 +302,15 @@ export function Chats({
             </div>
           )}
 
-          {/* ルーム情報：ルーム名・消える日時（スマホは人数と参加者も）。チャットを広く見せるため細く収める
-              スマホ：1行目「ルーム名｜参加者ボタン」、2行目「人数と参加者｜消える日時」
-              PC　　：参加者は左の欄にあるので出さず、「ルーム名｜消える日時」の1行だけ */}
-          <header className="border-b border-line bg-card px-5 py-2 md:px-8">
-            <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
-              <h1 className="truncate text-lg font-bold leading-snug">
-                {room?.name ?? "読み込み中…"}
-              </h1>
-              {/* スマホ：サイドバーがないので、ボタンで参加者・共有ファイルを開く */}
-              <button
-                type="button"
-                onClick={() => setMembersOpen(true)}
-                aria-label="参加者と共有ファイル"
-                className="relative flex size-8 items-center justify-center justify-self-end rounded-full hover:bg-cloud-pale md:hidden"
-              >
-                <Users className="size-5" />
-                {files.length > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-cloud px-1 text-[10px] font-bold">
-                    {files.length}
-                  </span>
-                )}
-              </button>
-              <p className="truncate text-xs text-ink-muted md:hidden">
-                {formatMembers(memberCount, room?.maxMembers)}
-                <span className="ml-3">{joinNames(participants)}</span>
-              </p>
-              {/* 要件どおり、残り時間ではなく日時で表示する */}
-              <ExpiryDate
-                expiresAt={room?.expiresAt}
-                now={now}
-                className="rounded-full bg-cloud-pale px-2.5 py-0.5"
-              />
-            </div>
-          </header>
-
           {status === "error" && (
             <p className="bg-amber-100 px-3 py-1 text-center text-xs text-amber-800">
               通信に失敗しました。再接続を試みています…
             </p>
           )}
 
-          {/* メッセージ一覧：自分は右・水色、他人は左・白＋丸アイコン */}
-          <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8">
+          {/* メッセージ一覧：背景は上の淡い空色から下の白へのグラデーションに、ふんわりした雲を重ねる（globals.css の bg-sky-clouds）
+              吹き出しが背景に埋もれないよう、自分は空より濃い水色、他人は白＋枠線にする */}
+          <div className="bg-sky-clouds flex-1 overflow-y-auto px-4 py-5 md:px-8">
             <div className="mx-auto max-w-3xl space-y-5">
               {messages.length === 0 && (
                 <p className="pt-10 text-center text-sm text-ink-muted">
@@ -319,8 +321,12 @@ export function Chats({
                 const isMine = m.senderId === me.guestId;
                 // 前のメッセージと日付が変わったら「今日　10月24日(土)」の区切りを出す
                 const showDay = i === 0 || !isSameDay(messages[i - 1].sentAt, m.sentAt);
+                // 吹き出しとしっぽの色（自分：濃い水色、他人：白＋枠線）
+                const fill = isMine ? "bg-cloud" : "border border-line bg-card";
                 return (
-                  <div key={m.id}>
+                  // 新しいメッセージは、少し下から透明な状態でふわっと浮かび上がる
+                  // （key が変わらないので、ポーリングのたびに既存のメッセージが動き直すことはない）
+                  <div key={m.id} className="motion-safe:animate-message-rise">
                     {showDay && (
                       <p className="mb-5 text-center text-xs text-ink-muted">
                         {formatDayLabel(m.sentAt, now)}
@@ -348,14 +354,33 @@ export function Chats({
                             isMine={isMine}
                           />
                         ) : (
-                          <p
-                            className={cn(
-                              "whitespace-pre-wrap break-words rounded-3xl px-5 py-3 text-[15px] leading-relaxed",
-                              isMine ? "bg-cloud-soft" : "bg-card",
-                            )}
-                          >
-                            {m.body}
-                          </p>
+                          // しっぽは、話した人の側の下の角に小さな丸を2つ並べる（雲から出る「ぽこぽこ」）
+                          <div className="relative">
+                            <p
+                              className={cn(
+                                "whitespace-pre-wrap break-words rounded-3xl px-5 py-3 text-[15px] leading-relaxed shadow-sm",
+                                fill,
+                              )}
+                            >
+                              {m.body}
+                            </p>
+                            <span
+                              aria-hidden
+                              className={cn(
+                                "absolute -bottom-0.5 size-3 rounded-full",
+                                fill,
+                                isMine ? "-right-1.5" : "-left-1.5",
+                              )}
+                            />
+                            <span
+                              aria-hidden
+                              className={cn(
+                                "absolute -bottom-2 size-1.5 rounded-full",
+                                fill,
+                                isMine ? "-right-3.5" : "-left-3.5",
+                              )}
+                            />
+                          </div>
                         )}
                       </div>
                     </div>
@@ -376,7 +401,7 @@ export function Chats({
               />
 
               <div className="flex items-end gap-3">
-                {/* 「＋」メニュー：ファイル共有（消えるノートは準備中） */}
+                {/* 「＋」メニュー：ファイル共有 */}
                 <AttachMenu onSelectFile={upload} disabled={!!uploading} />
                 <textarea
                   value={text}
@@ -395,23 +420,47 @@ export function Chats({
                     }
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={send}
-                  disabled={sending || !text.trim()}
-                  aria-label="送信"
-                  className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-cloud transition hover:bg-cloud-strong disabled:opacity-50"
-                >
-                  <SendHorizontal className="size-5" />
-                </button>
+                <div className="relative shrink-0">
+                  {pops.map((id) => (
+                    <CloudIcon
+                      key={id}
+                      className="pointer-events-none absolute bottom-full left-1/2 motion-safe:animate-cloud-pop motion-reduce:hidden"
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={send}
+                    disabled={sending || !text.trim()}
+                    aria-label="送信"
+                    className="flex size-11 items-center justify-center rounded-2xl bg-cloud transition hover:bg-cloud-strong disabled:opacity-50"
+                  >
+                    <SendHorizontal className="size-5" />
+                  </button>
+                </div>
               </div>
 
-              <p className="mt-2 text-center text-[11px] text-ink-muted">
-                期限がくると、会話・ノート・ファイルは消えます。
+              {/* PCで右の欄を出しているときは、欄の下に同じ説明があるので出さない */}
+              <p
+                className={cn(
+                  "mt-2 text-center text-[11px] text-ink-muted",
+                  panelOpen && "md:hidden",
+                )}
+              >
+                期限がくると、会話・ファイルは消えます。
               </p>
             </div>
           </div>
         </div>
+
+        {/* 右の欄（PCのみ）：参加者・共有ファイル。ヘッダーのボタンでしまえる */}
+        {panelOpen && (
+          <aside
+            id="room-side-panel"
+            className="hidden w-80 shrink-0 border-l border-line bg-card px-5 py-5 md:block lg:w-96"
+          >
+            {sidePanel}
+          </aside>
+        )}
       </div>
 
       <BottomSheet
@@ -419,7 +468,7 @@ export function Chats({
         onClose={() => setMembersOpen(false)}
         label="参加者と共有ファイル"
       >
-        {memberPanel}
+        {sidePanel}
       </BottomSheet>
     </PageShell>
   );

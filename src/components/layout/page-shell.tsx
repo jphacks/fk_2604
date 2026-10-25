@@ -8,6 +8,8 @@ type PageShellProps = {
   /** AppHeader にそのまま渡す */
   actions?: ReactNode;
   logoHref?: string;
+  logoIconOnly?: boolean;
+  headerCenter?: ReactNode;
   className?: string;
   /** ヘッダーの見た目を画面ごとに変えたいとき（例：チャット画面は高さを詰める） */
   headerClassName?: string;
@@ -20,13 +22,21 @@ export function PageShell({
   children,
   actions,
   logoHref,
+  logoIconOnly,
+  headerCenter,
   className,
   headerClassName,
   footer = false,
 }: PageShellProps) {
   return (
     <div className={cn("flex min-h-dvh flex-col bg-paper text-ink", className)}>
-      <AppHeader logoHref={logoHref} actions={actions} className={headerClassName} />
+      <AppHeader
+        logoHref={logoHref}
+        logoIconOnly={logoIconOnly}
+        center={headerCenter}
+        actions={actions}
+        className={headerClassName}
+      />
       {children}
       {footer && <SiteFooter />}
     </div>

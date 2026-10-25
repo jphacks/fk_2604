@@ -7,14 +7,21 @@ type LogoProps = {
   /** 指定するとロゴがリンクになる（例：管理者はダッシュボードへ） */
   href?: string;
   className?: string;
+  /** true にすると雲のアイコンだけを出す（サービス名は読み上げ用に残す） */
+  iconOnly?: boolean;
 };
 
 /** 雲のアイコン＋サービス名。全画面のナビゲーションで使う */
-export function Logo({ href, className }: LogoProps) {
+export function Logo({ href, className, iconOnly = false }: LogoProps) {
   const content = (
     <>
       <CloudIcon className="md:h-[27px] md:w-[39px]" />
-      <span className="text-[21px] font-bold tracking-wide text-ink md:text-[25px]">
+      <span
+        className={cn(
+          "text-[21px] font-bold tracking-wide text-ink md:text-[25px]",
+          iconOnly && "sr-only",
+        )}
+      >
         {siteConfig.name}
       </span>
     </>

@@ -8,7 +8,7 @@ type RoomEndedProps = {
 const COPY = {
   gone: {
     title: "この雲は、空にとけました",
-    body: "会話・ノート・ファイルは、すべて消えています。",
+    body: "会話・ファイルは、すべて消えています。",
   },
   full: {
     title: "このルームは満員です",

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { AnimatePresence, MotionConfig } from "framer-motion";
 import { ArrowRight, Plus } from "lucide-react";
 import { CloudIcon } from "@/components/brand/cloud-icon";
 import { buttonVariants } from "@/components/ui/button";
@@ -35,29 +38,47 @@ const SCATTER = [
   { dx: "8px", dy: "12px", duration: 9.5 },
 ] as const;
 
-/** ダッシュボードの空。ルームを雲として折り返し並べ、1つずつ位置をずらして浮かべる */
-export function RoomCloudList({ rooms }: { rooms: RoomCloudItem[] }) {
+/** 一覧を開いたとき、雲が1つずつ順に浮かぶ間隔（秒） */
+const APPEAR_STAGGER = 0.08;
+
+type RoomCloudListProps = {
+  rooms: RoomCloudItem[];
+  /** 消えた雲の「しゅわっ」が終わったとき */
+  onCloudGone?: () => void;
+};
+
+/**
+ * ダッシュボードの空。ルームを雲として折り返し並べ、1つずつ位置をずらして浮かべる。
+ * rooms に増えた雲は「ふわっ」と現れ、rooms から外れた雲は「しゅわっ」と消える（AnimatePresence）
+ */
+export function RoomCloudList({ rooms, onCloudGone }: RoomCloudListProps) {
   return (
-    <ul className="mx-auto flex max-w-md flex-col items-center gap-y-6 md:max-w-none md:flex-row md:flex-wrap md:items-start md:justify-center md:gap-x-12 md:gap-y-10">
-      {rooms.map((room, i) => {
-        const scatter = SCATTER[i % SCATTER.length];
-        return (
-          <RoomCloud
-            key={room.id}
-            href={room.href}
-            settingsHref={room.settingsHref}
-            name={room.name}
-            countdown={room.countdown}
-            membersLabel={room.membersLabel}
-            remainingRatio={room.remainingRatio}
-            size={room.size}
-            floatDelay={-(i * 1.7)}
-            floatDuration={scatter.duration}
-            offset={{ x: scatter.dx, y: scatter.dy }}
-          />
-        );
-      })}
-    </ul>
+    // 動きを減らす設定の人には、大きさ・位置の動きを止める（透明度は変える）
+    <MotionConfig reducedMotion="user">
+      <ul className="mx-auto flex max-w-md flex-col items-center gap-y-6 md:max-w-none md:flex-row md:flex-wrap md:items-start md:justify-center md:gap-x-12 md:gap-y-10">
+        <AnimatePresence onExitComplete={onCloudGone}>
+          {rooms.map((room, i) => {
+            const scatter = SCATTER[i % SCATTER.length];
+            return (
+              <RoomCloud
+                key={room.id}
+                href={room.href}
+                settingsHref={room.settingsHref}
+                name={room.name}
+                countdown={room.countdown}
+                membersLabel={room.membersLabel}
+                remainingRatio={room.remainingRatio}
+                size={room.size}
+                floatDelay={-(i * 1.7)}
+                floatDuration={scatter.duration}
+                offset={{ x: scatter.dx, y: scatter.dy }}
+                appearDelay={i * APPEAR_STAGGER}
+              />
+            );
+          })}
+        </AnimatePresence>
+      </ul>
+    </MotionConfig>
   );
 }
 

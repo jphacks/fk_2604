@@ -1,5 +1,8 @@
+"use client";
+
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { motion, type Variants } from "framer-motion";
 import { Clock, Settings } from "lucide-react";
 import { CloudBubble } from "@/components/brand/cloud-bubble";
 import type { CloudSize } from "@/lib/room-heat";
@@ -24,6 +27,8 @@ type RoomCloudProps = {
   floatDuration?: number;
   /** 並びからのずれ（md 以上）。x は横にずらすだけ、y は上の余白になる（重ならない）。CSS の長さ（「8px」） */
   offset?: { x: string; y: string };
+  /** 「ふわっ」と現れるまでの待ち時間（秒）。一覧を開いたとき、雲が順に浮かぶようにずらす */
+  appearDelay?: number;
   className?: string;
 };
 
@@ -55,6 +60,59 @@ export const CLOUD_TINT = {
 /** 残りがこれより少ない雲は、端から小さな粒になってとけていく */
 const FADING_RATIO = 0.3;
 
+/**
+ * 雲が現れる・消えるときの動き（Framer Motion）。
+ * - shown：小さくぼやけた状態から「ふわっ」とふくらんで浮かぶ（作成されたとき・一覧を開いたとき）
+ * - gone：期限がきたら、少しふくらみながらぼやけて「しゅわっ」ととける（粒が散るのは FIZZ）
+ * 動きを減らす設定の人には、MotionConfig（room-cloud-list.tsx）で動きを止め、透明度だけ変える
+ */
+const CLOUD_VARIANTS: Variants = {
+  hidden: { opacity: 0, scale: 0.6, y: 24, filter: "blur(10px)" },
+  shown: (delay: number) => ({
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      delay,
+      type: "spring",
+      stiffness: 70,
+      damping: 14,
+      mass: 1.1,
+    },
+  }),
+  gone: {
+    opacity: 0,
+    scale: 1.12,
+    y: -12,
+    filter: "blur(14px)",
+    transition: { duration: 0.9, ease: [0.4, 0, 0.2, 1] },
+  },
+};
+
+/** 消えるときに雲から散る粒。位置（雲に対する%）と、飛んでいく向き（px） */
+const FIZZ = [
+  { left: "18%", top: "40%", x: -46, y: -30, size: "5%" },
+  { left: "35%", top: "18%", x: -18, y: -58, size: "3.5%" },
+  { left: "55%", top: "10%", x: 14, y: -64, size: "4.5%" },
+  { left: "74%", top: "30%", x: 50, y: -40, size: "3%" },
+  { left: "86%", top: "58%", x: 62, y: -8, size: "4%" },
+  { left: "62%", top: "78%", x: 26, y: 30, size: "2.5%" },
+  { left: "28%", top: "76%", x: -34, y: 24, size: "3%" },
+] as const;
+
+const fizzVariants = (x: number, y: number): Variants => ({
+  hidden: { opacity: 0, scale: 0, x: 0, y: 0 },
+  shown: { opacity: 0, scale: 0, x: 0, y: 0 },
+  gone: {
+    opacity: [0, 1, 0],
+    scale: [0.4, 1, 0.6],
+    x,
+    y,
+    transition: { duration: 0.9, ease: "easeOut" },
+  },
+});
+
 /** ダッシュボードの「雲」1つ＝ルーム1つ。クリックでチャットへ */
 export function RoomCloud({
   href,
@@ -67,13 +125,22 @@ export function RoomCloud({
   floatDelay = 0,
   floatDuration = 10,
   offset,
+  appearDelay = 0,
   className,
 }: RoomCloudProps) {
   const fading = remainingRatio < FADING_RATIO;
 
   return (
-    // 外側でずらし（offset）、内側でふわふわ動かす（transform が重ならないように分ける）
-    <li
+    // 外側でずらし（offset：CSS の translate）と、現れる・消える動き（Framer Motion：transform）。
+    // 内側でふわふわ動かす（transform が重ならないように分ける）
+    <motion.li
+      variants={CLOUD_VARIANTS}
+      custom={appearDelay}
+      initial="hidden"
+      animate="shown"
+      exit="gone"
+      // 隣の雲が消えたら、残った雲はなめらかに詰める
+      layout="position"
       className={cn(
         "relative z-10 flex w-full justify-center md:w-auto md:translate-x-(--cloud-dx) md:pt-(--cloud-dy)",
         className,
@@ -106,6 +173,21 @@ export function RoomCloud({
         {/* 雲の形と中身。残り時間はこの下に置く */}
         <div className="relative">
           <CloudBubble className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))] transition-[color,filter] duration-700 group-has-[a:hover]:brightness-[0.97]" />
+
+          {/* 消えるとき（gone）だけ、雲のまわりに粒が散る */}
+          <span
+            aria-hidden
+            className="pointer-events-none text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))]"
+          >
+            {FIZZ.map((p) => (
+              <motion.span
+                key={`${p.left}-${p.top}`}
+                variants={fizzVariants(p.x, p.y)}
+                className="absolute aspect-square rounded-full bg-current"
+                style={{ left: p.left, top: p.top, width: p.size }}
+              />
+            ))}
+          </span>
 
           {fading && (
             // 右端からこぼれる小さな雲の粒
@@ -164,6 +246,6 @@ export function RoomCloud({
           残り {countdown}
         </p>
       </div>
-    </li>
+    </motion.li>
   );
 }

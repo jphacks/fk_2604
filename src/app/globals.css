@@ -26,6 +26,8 @@
   --color-sun: var(--sun); /* 入室画面の太陽の飾り・注意書きの背景 */
   --color-paper: var(--paper); /* ページ背景 */
   --color-line: var(--line); /* 区切り線・枠線 */
+  --color-sky-top: var(--sky-top); /* チャット背景の空（上） */
+  --color-sky-bottom: var(--sky-bottom); /* チャット背景の空（下） */
 
   /* --- フォント --- */
   /* --font-noto-sans-jp は app/layout.tsx の next/font が用意する。
@@ -95,6 +97,36 @@
       transform: translate(3px, 5px);
     }
   }
+
+  /* --- 動き：チャットの新しいメッセージが、少し下から透明な状態でふわっと浮かび上がる --- */
+  --animate-message-rise: message-rise 0.45s ease-out both;
+  @keyframes message-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* --- 動き：送信ボタンを押すと、小さな雲がポンと上に飛んでいく --- */
+  --animate-cloud-pop: cloud-pop 0.7s ease-out forwards;
+  @keyframes cloud-pop {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 0) scale(0.5);
+    }
+    25% {
+      opacity: 1;
+      transform: translate(-50%, -14px) scale(1.15);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -64px) scale(0.9);
+    }
+  }
 }
 
 :root {
@@ -110,6 +142,10 @@
   --sun: #fffbd8;
   --paper: #f8faf9; /* 背景は単色。水色の雲や吹き出しが埋もれないよう、ほぼ白にする */
   --line: #e3edeb;
+  /* チャット背景の空。吹き出しと同じ色・明るさにならないよう、
+     上は青寄りの空色（自分の吹き出し cloud より明るく、相手の白より暗い）、下は白に近づける */
+  --sky-top: #d4e9f7;
+  --sky-bottom: #f5f9fc;
 
   /* shadcn/ui の色を、くもとーくの配色に対応させる */
   --background: var(--paper);
@@ -179,6 +215,32 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* チャット背景：上の淡い空色から下の白へのグラデーションに、ふんわりした白い雲を重ねる。
+   雲はそれぞれ、ぼかした楕円を3つ重ねて形を作る。吹き出しの白とぶつからないよう、
+   雲は画面の端に寄せて半透明にしている。背景はスクロールしても動かない */
+@utility bg-sky-clouds {
+  background-color: var(--sky-bottom);
+  background-image:
+    /* 左上の雲 */
+    radial-gradient(ellipse 160px 60px at 10% 12%, rgb(255 255 255 / 0.8), transparent 70%),
+    radial-gradient(ellipse 90px 55px at 15% 8%, rgb(255 255 255 / 0.75), transparent 70%),
+    radial-gradient(ellipse 110px 45px at 4% 14%, rgb(255 255 255 / 0.6), transparent 70%),
+    /* 右上の雲（大きめ） */
+    radial-gradient(ellipse 220px 70px at 86% 18%, rgb(255 255 255 / 0.75), transparent 70%),
+    radial-gradient(ellipse 120px 70px at 82% 12%, rgb(255 255 255 / 0.7), transparent 70%),
+    radial-gradient(ellipse 100px 55px at 92% 14%, rgb(255 255 255 / 0.6), transparent 70%),
+    /* 右の中ほどの小さな雲 */
+    radial-gradient(ellipse 110px 40px at 96% 52%, rgb(255 255 255 / 0.6), transparent 70%),
+    radial-gradient(ellipse 60px 35px at 93% 49%, rgb(255 255 255 / 0.55), transparent 70%),
+    /* 左下の雲 */
+    radial-gradient(ellipse 180px 60px at 6% 72%, rgb(255 255 255 / 0.65), transparent 70%),
+    radial-gradient(ellipse 90px 50px at 10% 67%, rgb(255 255 255 / 0.6), transparent 70%),
+    /* 下にたまる雲海（白へのグラデーションになじませる） */
+    radial-gradient(ellipse 70% 120px at 25% 105%, rgb(255 255 255 / 0.9), transparent 70%),
+    radial-gradient(ellipse 70% 140px at 80% 108%, rgb(255 255 255 / 0.9), transparent 70%),
+    linear-gradient(to bottom, var(--sky-top), var(--sky-bottom));
 }
 
 @layer base {
