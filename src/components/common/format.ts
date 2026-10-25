@@ -25,8 +25,13 @@ export function formatMembers(count: number, max?: number | null) {
   return max ? `${count} / ${max}人` : `${count}人`;
 }
 
-/** ルームの残り日数：「あと3日」。1日未満は「今日まで」 */
-export function formatRemainingDays(expiresAt: number, now: number) {
-  const days = Math.floor((expiresAt - now) / DAY_MS);
-  return days >= 1 ? `あと${days}日` : "今日まで";
+/** ルームの残り時間：1日以上は「2日18時間」、1日未満は「03:24:18」 */
+export function formatCountdown(remainingMs: number) {
+  const s = Math.max(0, Math.floor(remainingMs / 1000));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (d >= 1) return `${d}日${pad(h)}時間`;
+  return `${pad(h)}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 }
+

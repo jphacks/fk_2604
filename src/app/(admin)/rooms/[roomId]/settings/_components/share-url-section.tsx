@@ -14,7 +14,7 @@ export function ShareUrlSection({ inviteUrl }: { inviteUrl: string | null }) {
   if (!inviteUrl) {
     return (
       <section className="flex flex-col gap-2" aria-labelledby="share-url-heading">
-        <h2 id="share-url-heading" className="text-sm font-medium">
+        <h2 id="share-url-heading" className="text-sm font-bold">
           共有URL
         </h2>
         <p role="alert" className="text-sm text-destructive">
@@ -36,7 +36,7 @@ export function ShareUrlSection({ inviteUrl }: { inviteUrl: string | null }) {
 
   return (
     <section className="flex flex-col gap-2" aria-labelledby="share-url-heading">
-      <h2 id="share-url-heading" className="text-sm font-medium">
+      <h2 id="share-url-heading" className="text-sm font-bold">
         共有URL
       </h2>
       <div className="flex gap-2">
@@ -45,22 +45,27 @@ export function ShareUrlSection({ inviteUrl }: { inviteUrl: string | null }) {
           readOnly
           aria-labelledby="share-url-heading"
           onFocus={(e) => e.currentTarget.select()}
-          className="font-mono text-xs md:text-xs"
+          className="h-12 rounded-xl px-4 font-mono text-xs md:text-xs"
         />
         <Button
           type="button"
           variant="outline"
           size="icon"
+          className="size-12 rounded-xl bg-card"
           onClick={() => handleCopy(inviteUrl)}
           aria-label={copied ? "コピーしました" : "URLをコピー"}
         >
           {copied ? <Check /> : <Copy />}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-ink-muted">
         ※ 毎日0:00（日本時間）に新しいURLに自動で更新されます。更新後は、前のURLからは入室できません
       </p>
-      <Button type="button" variant="outline" className="self-start" onClick={() => setQrOpen(true)}>
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-1 h-10 self-start rounded-xl bg-card px-4 font-bold"
+        onClick={() => setQrOpen(true)}>
         <QrCode />
         QRコードを表示
       </Button>

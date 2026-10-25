@@ -22,9 +22,6 @@ export const HEAT_HALF_LIFE_MS = 30 * 60 * 1000;
 /** 雲の大きさが切り替わる点数（md 以上で中、lg 以上で大） */
 export const HEAT_THRESHOLDS = { md: 3, lg: 10 } as const;
 
-/** この点数で雲の色が一番濃い水色（--cloud）になる。0点は淡い水色（--cloud-soft） */
-export const HEAT_FULL_COLOR_SCORE = HEAT_THRESHOLDS.lg;
-
 /** 保存する盛り上がりの情報。updatedAt は最後に加点した時刻（epoch ms） */
 export type RoomHeat = { score: number; updatedAt: number };
 
@@ -59,9 +56,4 @@ export function cloudSizeFromScore(score: number): CloudSize {
   if (score >= HEAT_THRESHOLDS.lg) return "lg";
   if (score >= HEAT_THRESHOLDS.md) return "md";
   return "sm";
-}
-
-/** 点数から雲の色の濃さを決める（0＝淡い水色 〜 1＝水色）。HEAT_FULL_COLOR_SCORE 以上は 1 */
-export function cloudTintFromScore(score: number): number {
-  return Math.min(1, Math.max(0, score / HEAT_FULL_COLOR_SCORE));
 }

@@ -1,87 +1,114 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { Timer } from "lucide-react";
+import { Clock, Settings } from "lucide-react";
+import { CloudBubble } from "@/components/brand/cloud-bubble";
 import type { CloudSize } from "@/lib/room-heat";
 import { cn } from "@/lib/utils";
 
 type RoomCloudProps = {
   href: string;
+  /** ルーム設定（S-07）へのリンク */
+  settingsHref: string;
   name: string;
-  /** 雲の下に出す残り日数（「あと3日」「今日まで」） */
-  remainingLabel: string;
-  /** 今日で消えるルームは残り日数を目立たせる */
-  endsToday?: boolean;
+  /** 残り時間（「2日18時間」「03:24:18」） */
+  countdown: string;
+  /** 参加人数（「3 / 6人」） */
+  membersLabel: string;
+  /** 初期の生存時間に対する残りの割合 0〜1。雲の濃さになる（0に近いほど空にとける） */
+  remainingRatio: number;
   /** 雲の大きさ（会話の盛り上がりで決まる。lib/room-heat.ts） */
   size?: CloudSize;
-  /** 雲の色の濃さ 0〜1（0＝淡い水色 --cloud-soft、1＝水色 --cloud。会話の盛り上がりで決まる） */
-  tint?: number;
   /** ふわふわ動くタイミングをずらす（秒） */
   floatDelay?: number;
   className?: string;
 };
 
+// 列の幅に対する雲の幅。盛り上がっているルームほど大きい
 const SIZE = {
-  sm: "w-36 md:w-48",
-  md: "w-40 md:w-56",
-  lg: "w-44 md:w-64",
+  sm: "w-[79%]",
+  md: "w-[85%]",
+  lg: "w-[90%]",
 } as const;
+
+/** 残りがこれより少ない雲は、端から小さな粒になってとけていく */
+const FADING_RATIO = 0.3;
 
 /** ダッシュボードの「雲」1つ＝ルーム1つ。クリックでチャットへ */
 export function RoomCloud({
   href,
+  settingsHref,
   name,
-  remainingLabel,
-  endsToday = false,
+  countdown,
+  membersLabel,
+  remainingRatio,
   size = "md",
-  tint = 1,
   floatDelay = 0,
   className,
 }: RoomCloudProps) {
+  const fading = remainingRatio < FADING_RATIO;
+
   return (
     // 外側でずらし（className）、内側でふわふわ動かす（transform が重ならないように分ける）
-    <li className={className}>
+    <li className={cn("relative z-10 flex justify-center", className)}>
       <div
-        className="flex flex-col items-center gap-2 motion-safe:animate-cloud-float"
-        style={{ animationDelay: `${floatDelay}s` }}
+        className={cn(
+          "group relative motion-safe:animate-cloud-float",
+          // 大きさが変わるときはふわっと変える（動きを減らす設定の人には変えない）
+          "transition-[width] duration-700 ease-out motion-reduce:transition-none",
+          SIZE[size],
+        )}
+        // 残りの割合を CSS変数で渡し、color-mix で水色と消えかけの色を混ぜる
+        // （満タンでも水色 60% までにして、文字が読みやすい淡さにとどめる）
+        style={
+          {
+            animationDelay: `${floatDelay}s`,
+            "--cloud-tint": `${Math.round(remainingRatio * 60)}%`,
+          } as CSSProperties
+        }
       >
-        <Link
-          href={href}
-          className={cn(
-            "group relative block rounded-3xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-            // 大きさが変わるときはふわっと変える（動きを減らす設定の人には変えない）
-            "transition-[width] duration-700 ease-out motion-reduce:transition-none",
-            SIZE[size],
-          )}
-          // 色の濃さを CSS変数で渡し、下の svg の color-mix で淡い水色と水色を混ぜる
-          // （白だと背景に溶けて見えないので、静かなルームも淡い水色にする）
-          style={{ "--cloud-tint": `${Math.round(tint * 100)}%` } as CSSProperties}
-        >
-          {/* brand/cloud-icon.tsx と同じ雲の形 */}
-          <svg
-            viewBox="0 0 32 22"
-            fill="currentColor"
-            aria-hidden
-            className="w-full text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-soft))] drop-shadow-[0_6px_12px_rgb(53_88_114/0.12)] transition-[color,filter] duration-700 group-hover:brightness-95"
-          >
-            <path d="M8.5 22A7.5 7.5 0 0 1 7.4 7.1 9 9 0 0 1 24.2 6a8 8 0 0 1 .3 16Z" />
-          </svg>
-          {/* 雲のふくらんだ下の方に名前を置く */}
-          <span className="absolute inset-x-[14%] top-[38%] bottom-[10%] flex items-center justify-center text-center">
-            <span className="line-clamp-2 text-sm font-bold leading-snug break-all text-ink md:text-base">
-              {name}
-            </span>
-          </span>
-        </Link>
+        <CloudBubble className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))] transition-[color,filter] duration-700 group-has-[a:hover]:brightness-[0.97]" />
 
-        <p
-          className={cn(
-            "flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs tabular-nums ring-1 ring-line",
-            endsToday ? "font-bold text-ink" : "text-ink-muted",
-          )}
-        >
-          <Timer className="size-3.5" aria-hidden />
-          {remainingLabel}
-        </p>
+        {fading && (
+          // 右端からこぼれる小さな雲の粒
+          <span aria-hidden className="text-[color-mix(in_oklch,var(--color-cloud)_var(--cloud-tint),var(--color-cloud-mist))]">
+            <span className="absolute top-[42%] -right-[4%] size-[6%] rounded-full bg-current" />
+            <span className="absolute top-[60%] -right-[1%] size-[4.5%] rounded-full bg-current" />
+            <span className="absolute top-[47%] -right-[9%] size-[2.5%] rounded-full bg-current" />
+            <span className="absolute top-[72%] right-[3%] size-[2%] rounded-full bg-current" />
+          </span>
+        )}
+
+        {/* 雲のふくらんだ真ん中に中身を置く */}
+        <div className="absolute inset-x-[14%] top-[28%] bottom-[20%] flex flex-col justify-center gap-1 text-ink md:gap-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="line-clamp-1 text-base font-bold break-all md:text-lg">{name}</h2>
+            <Link
+              href={settingsHref}
+              className="relative z-10 -m-1.5 shrink-0 rounded-full p-1.5 text-cloud-deep outline-none hover:bg-white/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+              aria-label={`${name}の設定`}
+              title="ルーム設定"
+            >
+              <Settings className="size-4 md:size-5" aria-hidden />
+            </Link>
+          </div>
+
+          <p className="flex items-center gap-1.5 text-2xl font-bold tabular-nums md:text-[28px]">
+            <Clock className="size-4 shrink-0 md:size-5" aria-hidden />
+            <span className="sr-only">残り</span>
+            {countdown}
+          </p>
+
+          <div className="flex items-end justify-between gap-2">
+            <p className="text-xs text-ink-muted tabular-nums md:text-sm">{membersLabel}</p>
+            {/* 雲全体をクリックできるよう、リンクの当たり判定を雲いっぱいに広げる */}
+            <Link
+              href={href}
+              className="shrink-0 rounded-md text-xs font-bold tracking-wide whitespace-nowrap outline-none after:absolute after:-inset-x-[16%] after:-top-[40%] after:-bottom-[25%] after:rounded-[40%] after:content-[''] hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+            >
+              チャットへ →
+            </Link>
+          </div>
+        </div>
       </div>
     </li>
   );
