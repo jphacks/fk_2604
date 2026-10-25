@@ -7,7 +7,7 @@
 <!-- <img width="3840" height="2160" alt="アプリ概要" src="https://github.com/user-attachments/assets/49d4e5fb-0550-4132-8dbf-c15ea859fb68" /> -->
 <img width="1920" height="1080" alt="kumotalk-overview" src="docs/images/kumotalk-overview.gif" />
 
-- [アプリURL](https://fk-2604.vercel.app/)
+- 「くもとーく」URLリンク：(https://fk-2604.vercel.app/)
 
 ## 製品概要
 
