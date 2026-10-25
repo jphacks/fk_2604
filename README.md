@@ -160,8 +160,10 @@
  
 - **スマホでの利用シーンも想定**
   - 日常使いで利用できるアプリであるため、レスポンシブデザインを採用。webアプリに加えてスマホアプリも表示できるようにしました。
-      <img src="docs/images/smartphone-chat.png" alt="スマホ画面" width="800">
-
+  <p align="center">
+    <img src="docs/images/smartphone-chat.png" alt="スマホ画面" width="300">
+  </p>
+  
 ## 開発技術
 
 ### 活用した技術
