@@ -66,8 +66,7 @@
 
 チャット画面には、ルームが消えるまでの残り時間を表示します。あとどれくらい会話できるのかが一目でわかります。
 
-<!-- 画像: チャット画面（カウントダウン） --><img width="1920" height="1080" alt="kumotalk-overview" src="https://github.com/user-attachments/assets/c28a1199-9251-4dde-95ae-fa4405a3d8e2" />
-
+<!-- 画像: チャット画面（カウントダウン） -->
 <img width="3200" height="1888" alt="チャット画面" src="https://github.com/user-attachments/assets/8a8e0e00-b1fa-439f-b746-6297c733a614" />
 
 
