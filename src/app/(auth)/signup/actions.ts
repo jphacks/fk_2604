@@ -32,14 +32,34 @@ export async function signup(
   }
 
   const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  let emailRedirectTo: string | undefined;
+  if (siteUrl) {
+    try {
+      emailRedirectTo = new URL("/auth/callback", `${siteUrl}/`).toString();
+    } catch {
+      console.error("[auth] invalid NEXT_PUBLIC_SITE_URL");
+      return {
+        errors: { email: "認証設定に問題があります。管理者へ連絡してください" },
+        fields: { email },
+      };
+    }
+  }
+
+  const signUpOptions = emailRedirectTo
+    ? { email, password, options: { emailRedirectTo } }
+    : { email, password };
   const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback`,
-    },
+    ...signUpOptions,
   });
-  if (error) return { errors: { email: toAuthErrorMessage(error) }, fields: { email } };
+  if (error) {
+    console.error("[auth] signup failed", {
+      message: error.message,
+      code: error.code ?? null,
+      status: error.status ?? null,
+    });
+    return { errors: { email: toAuthErrorMessage(error) }, fields: { email } };
+  }
   if (!data.session) {
     return {
       fields: { email },
