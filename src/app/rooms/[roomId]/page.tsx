@@ -2,6 +2,7 @@ import { Chats } from "@/components/chats";
 import { syncRoomInfo } from "@/lib/dev-store";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { requireAdminAal2 } from "@/lib/admin-authorization";
 
 export default async function RoomPage({
   params,
@@ -26,6 +27,7 @@ export default async function RoomPage({
 
   // ルームの作成者（管理者）だけに設定ボタンを出す。設定ページ側でも同じ判定をしている
   const isOwner = !user.is_anonymous && room.owner_id === user.id;
+  if (isOwner) await requireAdminAal2();
 
   // ニックネームは招待リンクの入室フォームで登録したものを使う（チャット画面では聞き直さない）
   // 管理者は room_members に入らないので、プロフィールの表示名を使う

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getRoomHeats } from "@/lib/redis-messages";
 import type { RoomHeatsResponse } from "@/lib/room-heat";
 import { createClient } from "@/lib/supabase/server";
+import { adminMfaState } from "@/lib/admin-mfa";
 
 /**
  * GET /api/rooms/heat
@@ -16,6 +17,11 @@ export async function GET() {
   if (!user || user.is_anonymous) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
+  try {
+    if (await adminMfaState(supabase, user) !== "ready") {
+      return NextResponse.json({ error: "MFA_REQUIRED" }, { status: 403, headers: { "Cache-Control": "private, no-store" } });
+    }
+  } catch { return NextResponse.json({ error: "SERVICE_UNAVAILABLE" }, { status: 503 }); }
 
   const now = Date.now();
   const { data, error } = await supabase

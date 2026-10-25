@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { DashboardActions } from "@/components/dashboard/dashboard-actions";
 import { PageShell } from "@/components/layout/page-shell";
 import { getDisplayName } from "@/lib/display-name";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAal2 } from "@/lib/admin-authorization";
 import { logout } from "../../../(auth)/login/logout-actions";
 import { RoomCreateForm } from "./_components/room-create-form";
 
@@ -15,14 +15,11 @@ export const metadata: Metadata = {
 
 /** ヘッダー右の「管理者 名前」。ログインしていなければ何も出さない */
 async function getHeaderActions() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.is_anonymous) return null;
+  const { supabase, user } = await requireAdminAal2();
   const name = await getDisplayName(supabase, user.id, user.email);
   return <DashboardActions name={name} logoutAction={logout} />;
 }
 
-// TODO: Supabase接続後、未ログインなら /login へリダイレクトする
 export default async function NewRoomPage() {
   return (
     // 背景はチャット画面と同じ、空のグラデーション＋ふんわりした雲（globals.css の bg-sky-clouds）

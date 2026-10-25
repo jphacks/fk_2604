@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAal2 } from "@/lib/admin-authorization";
 import { endOfDayJst, validateRoomPeriod } from "@/lib/room-period";
 import { ROOM_NAME_MAX_LENGTH } from "./constants";
 
@@ -35,9 +34,7 @@ export async function createRoom(
   };
   if (errors.name || errors.period) return { errors, fields: { name } };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.is_anonymous) redirect("/login");
+  const { supabase, user } = await requireAdminAal2();
 
   const startsAt = toIsoStart(startDate);
   const expiresAt = new Date(endOfDayJst(endDate)).toISOString();
