@@ -8,6 +8,7 @@
 <img width="1920" height="1080" alt="kumotalk-overview" src="docs/images/kumotalk-overview.gif" />
 
 - 「くもとーく」アプリURL：https://fk-2604.vercel.app/
+- アプリ概要 スライド資料：
 
 ## 製品概要
 
