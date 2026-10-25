@@ -116,6 +116,12 @@
 
 ### 今後の展望
 
+- トーク内で投票を行い、日程調整や役割分担をその場で決められるようにする
+- ルームと一緒に消える共有メモ「消えるノート」を追加する
+- 共有URLが漏れたときに、0:00を待たずに管理者がすぐ新しいURLに更新できるようにする
+- ルームが消える前に「あと1日で消えます」と参加者へお知らせする
+- スクリーンショットの撮影を検知して、参加者に警告を表示する
+
 ### 注力したこと（こだわり等）
 
 -
@@ -125,20 +131,32 @@
 
 ### 活用した技術
 
+#### 使用言語
+
+- TypeScript
+- HTML / CSS
+- SQL（PostgreSQL）
+
 #### API・データ
 
--
--
+- 外部サービス
+  - [Supabase](https://supabase.com/)
+    - Supabase Auth（管理者のログイン・二要素認証、ゲストの匿名認証）
+    - Supabase Database（PostgreSQL。Row Level Security でルームごとの権限を管理）
+  - [Upstash Redis](https://upstash.com/)（メッセージを有効期限付きで保持）
+  - [Vercel](https://vercel.com/)（デプロイ）
 
 #### フレームワーク・ライブラリ・モジュール
 
--
--
-
-#### デバイス
-
--
--
+- [Git](https://git-scm.com/) / [GitHub](https://github.com/)
+- [Next.js](https://nextjs.org/)（App Router）
+- [React](https://react.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [Base UI](https://base-ui.com/)
+- [React DayPicker](https://daypicker.dev/)（利用期間を選ぶカレンダー）
+- [qrcode.react](https://github.com/zpao/qrcode.react)（共有用QRコード）
+- [Lucide](https://lucide.dev/)（アイコン）
 
 ### 独自技術
 
