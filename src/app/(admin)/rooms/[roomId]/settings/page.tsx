@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeftIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import {
   Card,
@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageShell } from "@/components/layout/page-shell";
 import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
 import { todayJst, toJstDate } from "@/lib/room-period";
 import { createClient } from "@/lib/supabase/server";
@@ -50,31 +51,35 @@ export default async function RoomSettingsPage({
   const endDate = toJstDate(room.expires_at);
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-muted/40 px-4 py-12">
-      <Card className="w-full max-w-md">
-        <CardHeader className="border-b">
+    <PageShell logoHref="/dashboard">
+      <main className="flex flex-1 justify-center px-4 py-8 md:py-12">
+        <div className="flex w-full max-w-md flex-col gap-4">
           <Link
             href={`/rooms/${room.id}`}
-            className="-ml-2 flex w-fit items-center gap-1 rounded-full px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex items-center gap-1.5 self-start rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-soft"
           >
-            <ChevronLeftIcon className="size-4" aria-hidden />
+            <ArrowLeft className="size-5" aria-hidden />
             チャットに戻る
           </Link>
-          <CardTitle className="text-lg font-semibold">
-            {room.name} のトークルーム〈設定〉
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <ShareUrlSection inviteUrl={inviteUrl} />
-          <hr />
-          <PeriodForm
-            roomId={room.id}
-            initialStartDate={startDate}
-            initialEndDate={endDate}
-            started={startDate <= todayJst()}
-          />
-        </CardContent>
-      </Card>
-    </main>
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle className="text-lg font-semibold">
+                {room.name} のトークルーム〈設定〉
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              <ShareUrlSection inviteUrl={inviteUrl} />
+              <hr />
+              <PeriodForm
+                roomId={room.id}
+                initialStartDate={startDate}
+                initialEndDate={endDate}
+                started={startDate <= todayJst()}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </PageShell>
   );
 }

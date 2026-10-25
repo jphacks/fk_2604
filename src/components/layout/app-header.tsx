@@ -14,7 +14,8 @@ export function AppHeader({ actions, logoHref, className }: AppHeaderProps) {
   return (
     <nav
       className={cn(
-        "flex h-[68px] shrink-0 items-center justify-between px-5 md:h-[88px] md:px-12",
+        // スクロールしてもロゴ・操作に届くよう上部に固定。背景と同じ色にして、下に線を引いて区切る
+        "sticky top-0 z-20 flex h-[68px] shrink-0 items-center justify-between border-b border-line bg-paper px-5 md:h-[88px] md:px-12",
         className,
       )}
     >

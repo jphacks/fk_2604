@@ -13,7 +13,7 @@ type ExpiryDateProps = {
 };
 
 /**
- * 「この雲が消える日　10月27日（火）」の表示。
+ * 「このチャットは　10月27日（火）に消えます」の表示。
  * 要件どおり残り時間（カウントダウン）ではなく日付で出す。
  * チャット画面のヘッダー、ダッシュボードのルームカードなどで使う。
  */
@@ -30,9 +30,11 @@ export function ExpiryDate({
 
   return (
     <div className={className}>
-      <p className={cn("text-[11px] text-ink-muted", labelClassName)}>この雲が消える日</p>
+      <p className={cn("text-[11px] text-ink-muted", labelClassName)}>このチャットは</p>
       <p className={cn("font-medium tabular-nums text-ink", dateClassName)}>
         {expiresAt ? <time dateTime={new Date(expiresAt).toISOString()}>{label}</time> : label}
+        {/* 日付を目立たせたいので、続きの文は小さく控えめにする */}
+        {expiresAt && <span className="ml-1 text-sm font-normal text-ink-muted">に消えます</span>}
       </p>
     </div>
   );

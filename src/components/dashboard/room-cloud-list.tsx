@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { CloudIcon } from "@/components/brand/cloud-icon";
 import { buttonVariants } from "@/components/ui/button";
+import type { CloudSize } from "@/lib/room-heat";
 import { cn } from "@/lib/utils";
 import { RoomCloud } from "./room-cloud";
 
@@ -11,10 +12,13 @@ export type RoomCloudItem = {
   href: string;
   remainingLabel: string;
   endsToday: boolean;
+  /** 雲の大きさ（会話の盛り上がりで決まる） */
+  size: CloudSize;
+  /** 雲の色の濃さ 0〜1（0＝淡い水色、1＝水色。会話の盛り上がりで決まる） */
+  tint: number;
 };
 
-// 雲の大きさと高さを順番に変えて、並びが単調にならないようにする
-const SIZES = ["lg", "sm", "md"] as const;
+// 雲の高さを順番に変えて、並びが単調にならないようにする
 const OFFSETS = ["md:translate-y-0", "md:translate-y-10", "md:-translate-y-4"];
 
 /** ダッシュボードの空。ルームを雲として並べる */
@@ -28,7 +32,8 @@ export function RoomCloudList({ rooms }: { rooms: RoomCloudItem[] }) {
           name={room.name}
           remainingLabel={room.remainingLabel}
           endsToday={room.endsToday}
-          size={SIZES[i % SIZES.length]}
+          size={room.size}
+          tint={room.tint}
           floatDelay={(i % 4) * 0.8}
           className={OFFSETS[i % OFFSETS.length]}
         />

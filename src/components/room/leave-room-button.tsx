@@ -27,7 +27,7 @@ export function LeaveRoomButton({ roomId }: { roomId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-pale"
+        className="flex items-center gap-1.5 rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-soft"
       >
         <LogOut className="size-5" aria-hidden />
         退室
