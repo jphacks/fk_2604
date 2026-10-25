@@ -1,7 +1,10 @@
 import type { Message } from "@/lib/types";
 import { getRedis } from "@/lib/redis";
+import { addHeat, type RoomHeat } from "@/lib/room-heat";
 
 const keyFor = (roomId: string) => `chat:room:${roomId}:messages`;
+/** 会話の盛り上がり（lib/room-heat.ts）。ダッシュボードの雲の大きさ・色に使う */
+const heatKeyFor = (roomId: string) => `chat:room:${roomId}:heat`;
 
 export type MessageRoom = {
   id: string;
@@ -48,11 +51,14 @@ export async function pushMessage(
     ...(file ? { file } : {}),
   };
   const expiresAt = expirySeconds(room);
+  // 盛り上がりの点数を +1（ファイル共有のメッセージも1件として数える）
+  const heat = addHeat(await getRedis().get<RoomHeat>(heatKeyFor(room.id)), message.sentAt);
 
   await getRedis()
     .multi()
     .rpush(keyFor(room.id), message)
     .expireat(keyFor(room.id), expiresAt)
+    .set(heatKeyFor(room.id), heat, { exat: expiresAt })
     .exec();
 
   return message;
@@ -60,5 +66,23 @@ export async function pushMessage(
 
 export async function syncMessageTtl(room: MessageRoom): Promise<void> {
   const expiresAt = expirySeconds(room);
-  await getRedis().expireat(keyFor(room.id), expiresAt);
+  await getRedis()
+    .multi()
+    .expireat(keyFor(room.id), expiresAt)
+    .expireat(heatKeyFor(room.id), expiresAt)
+    .exec();
+}
+
+/**
+ * 複数ルームの盛り上がりの点数をまとめて取る（ダッシュボード用。1回の通信で済む）。
+ * ルームが無い・期限切れ・まだ点数が無いときは null
+ */
+export async function getRoomHeats(roomIds: string[]): Promise<Record<string, RoomHeat | null>> {
+  const heats: Record<string, RoomHeat | null> = {};
+  if (roomIds.length === 0) return heats;
+  const values = await getRedis().mget<(RoomHeat | null)[]>(...roomIds.map(heatKeyFor));
+  roomIds.forEach((id, i) => {
+    heats[id] = values[i] ?? null;
+  });
+  return heats;
 }

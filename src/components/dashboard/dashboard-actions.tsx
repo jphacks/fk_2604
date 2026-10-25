@@ -1,26 +1,21 @@
-import Link from "next/link";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type DashboardActionsProps = {
-  email?: string;
+  /** ログイン中の管理者の名前 */
+  name: string;
   /** ログアウトのサーバーアクション（機能はページ側から渡す） */
   logoutAction: () => Promise<void>;
 };
 
-/** ダッシュボードのヘッダー右側：ログイン中のメール・ルーム作成・ログアウト */
-export function DashboardActions({ email, logoutAction }: DashboardActionsProps) {
+/** ダッシュボードのヘッダー右側：「管理者 名前」とログアウト（ルーム作成はページ見出しの横） */
+export function DashboardActions({ name, logoutAction }: DashboardActionsProps) {
   return (
     <>
-      {email && (
-        <span className="hidden max-w-48 truncate text-sm text-ink-muted md:inline">{email}</span>
-      )}
-      {/* S-05 新規ルーム作成（src/app/(admin)/rooms/new）へ */}
-      <Link href="/rooms/new" className={cn(buttonVariants({ size: "lg" }), "px-4")}>
-        <Plus aria-hidden />
-        ルーム作成
-      </Link>
+      <p className="hidden items-baseline gap-3 text-sm md:flex">
+        <span className="text-ink-muted">管理者</span>
+        <span className="max-w-40 truncate text-ink">{name}</span>
+      </p>
       <form action={logoutAction}>
         <button
           type="submit"

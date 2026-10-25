@@ -10,8 +10,7 @@
  *   「今の点数」は読むたびに経過時間から計算し直す（定期的に減らす処理はいらない）
  *
  * 保存場所
- * - いまは lib/dev-store.ts のメモリ上
- * - 本番では Redis の room:{roomId}:heat に、ルームと同じTTLで保存する想定
+ * - Redis の chat:room:{roomId}:heat に、ルームと同じ期限で保存する（lib/redis-messages.ts）
  *   （ルームが消えると点数も一緒に消える）
  *
  * React や Next.js には依存しない、純粋な関数だけを置くこと。
@@ -20,17 +19,14 @@
 /** 点数が半分になるまでの時間（ミリ秒）。デモ時は5分などに短くする */
 export const HEAT_HALF_LIFE_MS = 30 * 60 * 1000;
 
-/** 雲の大きさが切り替わる点数（md 以上で中、lg 以上で大） */
-export const HEAT_THRESHOLDS = { md: 3, lg: 10 } as const;
-
-/** この点数で雲の色が一番濃い水色（--cloud）になる。0点は淡い水色（--cloud-soft） */
-export const HEAT_FULL_COLOR_SCORE = HEAT_THRESHOLDS.lg;
+/** 雲の大きさが切り替わる点数（md 以上で中、それ未満は小） */
+export const HEAT_THRESHOLDS = { md: 3 } as const;
 
 /** 保存する盛り上がりの情報。updatedAt は最後に加点した時刻（epoch ms） */
 export type RoomHeat = { score: number; updatedAt: number };
 
 /** 雲の大きさ */
-export type CloudSize = "sm" | "md" | "lg";
+export type CloudSize = "sm" | "md";
 
 /** /api/rooms/heat の返り値。now はサーバーの現在時刻（時計のずれの補正に使う） */
 export type RoomHeatsResponse = {
@@ -57,12 +53,6 @@ export function addHeat(
 
 /** 点数から雲の大きさを決める */
 export function cloudSizeFromScore(score: number): CloudSize {
-  if (score >= HEAT_THRESHOLDS.lg) return "lg";
   if (score >= HEAT_THRESHOLDS.md) return "md";
   return "sm";
-}
-
-/** 点数から雲の色の濃さを決める（0＝淡い水色 〜 1＝水色）。HEAT_FULL_COLOR_SCORE 以上は 1 */
-export function cloudTintFromScore(score: number): number {
-  return Math.min(1, Math.max(0, score / HEAT_FULL_COLOR_SCORE));
 }

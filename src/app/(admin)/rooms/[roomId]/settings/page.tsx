@@ -3,13 +3,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { logout } from "@/app/(auth)/login/logout-actions";
+import { DashboardActions } from "@/components/dashboard/dashboard-actions";
 import { PageShell } from "@/components/layout/page-shell";
+import { getDisplayName } from "@/lib/display-name";
 import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
 import { todayJst, toJstDate } from "@/lib/room-period";
 import { createClient } from "@/lib/supabase/server";
@@ -49,36 +46,40 @@ export default async function RoomSettingsPage({
 
   const startDate = toJstDate(room.starts_at);
   const endDate = toJstDate(room.expires_at);
+  const displayName = await getDisplayName(supabase, user.id, user.email);
 
   return (
-    <PageShell logoHref="/dashboard">
-      <main className="flex flex-1 justify-center px-4 py-8 md:py-12">
-        <div className="flex w-full max-w-md flex-col gap-4">
-          <Link
-            href={`/rooms/${room.id}`}
-            className="flex items-center gap-1.5 self-start rounded-full px-2 py-2 text-[15px] font-medium hover:bg-cloud-soft"
-          >
-            <ArrowLeft className="size-5" aria-hidden />
-            チャットに戻る
-          </Link>
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle className="text-lg font-semibold">
-                {room.name} のトークルーム〈設定〉
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6">
-              <ShareUrlSection inviteUrl={inviteUrl} />
-              <hr />
-              <PeriodForm
-                roomId={room.id}
-                initialStartDate={startDate}
-                initialEndDate={endDate}
-                started={startDate <= todayJst()}
-              />
-            </CardContent>
-          </Card>
+    // 背景はチャット画面と同じ、空のグラデーション＋ふんわりした雲（globals.css の bg-sky-clouds）
+    <PageShell
+      className="bg-sky-clouds"
+      logoHref="/dashboard"
+      actions={<DashboardActions name={displayName} logoutAction={logout} />}
+      footer
+    >
+      <main className="mx-auto w-full max-w-xl flex-1 px-5 pt-8 pb-16 md:pt-10">
+        <Link
+          href={`/rooms/${room.id}`}
+          className="inline-flex items-center gap-1.5 rounded-md text-xs font-bold text-cloud-deep outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden />
+          チャットに戻る
+        </Link>
+        <p className="mt-5 text-xs font-bold tracking-wide text-cloud-deep md:text-sm">トークルームの設定</p>
+        <h1 className="mt-2 text-2xl font-bold break-all md:text-[28px]">{room.name}</h1>
+        <p className="mt-3 text-sm text-ink-muted">招待URLの共有と、利用期間の変更ができます。</p>
+
+        <div className="mt-8 flex flex-col gap-6 rounded-3xl bg-card p-6 ring-1 ring-line md:p-8">
+          <ShareUrlSection inviteUrl={inviteUrl} />
+          <hr className="border-line" />
+          <PeriodForm
+            roomId={room.id}
+            initialStartDate={startDate}
+            initialEndDate={endDate}
+            started={startDate <= todayJst()}
+          />
         </div>
+
+        <p className="mt-5 text-xs text-ink-muted">終了日の23:59になると、ルームは消えます。</p>
       </main>
     </PageShell>
   );
