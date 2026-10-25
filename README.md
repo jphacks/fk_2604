@@ -36,7 +36,7 @@
 こうした経験から、私たちは「**短期間しか必要のないグループのために、グループやメッセージ、連絡先がいつまでも残り続けてしまう**」ことを課題としました。
 そこで、**あらかじめ決めた期間が過ぎると、メッセージもグループも消え去る**コミュニケーションツールを開発しました。
 
-<img width="3600" height="720" alt="kumotalk_background" src="https://github.com/user-attachments/assets/571a3d9f-a475-4d23-91c9-59382b0e7d6b" />
+<img width="3600" height="720" alt="kumotalk_background" src="docs/images/kumotalk_background.png" />
 
 
 ### 製品説明（具体的な製品の説明）
@@ -74,7 +74,7 @@
 チャット画面には、ルームが消えるまでの残り時間を表示します。あとどれくらい会話できるのかが一目でわかります。
 
 <!-- 画像: チャット画面（カウントダウン） -->
-<img width="3200" height="1888" alt="チャット画面" src="https://github.com/user-attachments/assets/8a8e0e00-b1fa-439f-b746-6297c733a614" />
+<img width="3200" height="1888" alt="チャット画面" src="docs/images/チャット画面.png" />
 
 
 #### 2. アカウント登録なしで、QRコードからすぐ参加できる
