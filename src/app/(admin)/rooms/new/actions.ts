@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -53,6 +54,7 @@ export async function createRoom(
     .select("id")
     .single();
   if (roomError || !room) {
+    console.error("[createRoom] ルームの作成に失敗", roomError);
     return { message: "ルームを作成できませんでした", fields: { name } };
   }
 
@@ -67,6 +69,9 @@ export async function createRoom(
     await supabase.from("rooms").delete().eq("id", room.id);
     return { message: "招待URLを発行できませんでした", fields: { name } };
   }
+
+  // ダッシュボードのルーム一覧に新しいルームを出すため、キャッシュを破棄する
+  revalidatePath("/dashboard");
 
   const requestHeaders = await headers();
   const origin =
