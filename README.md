@@ -22,7 +22,7 @@
   <img src="docs/images/times.jpg" alt="×" width="30%">
   <img src="docs/images/computer_mob_programming.png" alt="チームで開発する様子" width="30%"> 
   -->
-  <img width="1200" height="400" alt="kumotalk_communication_x_tech" src="https://github.com/user-attachments/assets/b2ddd870-f2be-44e1-82c6-911f0cb5e47b" />
+  <img width="1200" height="400" alt="kumotalk_communication_x_tech" src="docs/images/kumotalk_communication_x_tech.png" />
   
 </p>
 
