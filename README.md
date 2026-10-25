@@ -1,8 +1,12 @@
-# サンプル（プロダクト名）
+# くもとーく
+
+<!-- メインとなる画像に差し替える予定 -->
 
 [![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2026/07/IMG_5316.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
 
 ## 製品概要
+
+<!-- 動画を挿入予定 -->
 
 ### コミュニケーション × Tech
 
@@ -72,7 +76,9 @@
 ルームを作成すると、共有用URLと一緒にQRコードを表示します。
 授業や部活の集まりなど、その場にいるメンバーにはスマートフォンで読み取ってもらうだけで参加してもらえます。
 
-<!-- 画像: 共有用URLとQRコードのダイアログ -->
+<p align="center">
+  <img src="docs/images/scs_share-qr-code.png" alt="共有用QRコードのダイアログ。スマートフォンのカメラで読み取ると入室画面が開く" width="480">
+</p>
 
 - **登録なしでも、なりすましはできない**
 
