@@ -135,7 +135,7 @@ export default async function JoinPage({
 
           <p className="flex gap-2.5 rounded-xl bg-sun px-5 py-4 text-xs leading-relaxed text-ink-muted">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-            期限がくると、会話・ノート・ファイルは消えます。必要な情報は、期限までに控えておきましょう。
+            期限がくると、会話・ファイルは消えます。必要な情報は、期限までに控えておきましょう。
           </p>
         </section>
       </main>

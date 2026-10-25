@@ -19,14 +19,14 @@
 /** 点数が半分になるまでの時間（ミリ秒）。デモ時は5分などに短くする */
 export const HEAT_HALF_LIFE_MS = 30 * 60 * 1000;
 
-/** 雲の大きさが切り替わる点数（md 以上で中、lg 以上で大） */
-export const HEAT_THRESHOLDS = { md: 3, lg: 10 } as const;
+/** 雲の大きさが切り替わる点数（md 以上で中、それ未満は小） */
+export const HEAT_THRESHOLDS = { md: 3 } as const;
 
 /** 保存する盛り上がりの情報。updatedAt は最後に加点した時刻（epoch ms） */
 export type RoomHeat = { score: number; updatedAt: number };
 
 /** 雲の大きさ */
-export type CloudSize = "sm" | "md" | "lg";
+export type CloudSize = "sm" | "md";
 
 /** /api/rooms/heat の返り値。now はサーバーの現在時刻（時計のずれの補正に使う） */
 export type RoomHeatsResponse = {
@@ -53,7 +53,6 @@ export function addHeat(
 
 /** 点数から雲の大きさを決める */
 export function cloudSizeFromScore(score: number): CloudSize {
-  if (score >= HEAT_THRESHOLDS.lg) return "lg";
   if (score >= HEAT_THRESHOLDS.md) return "md";
   return "sm";
 }

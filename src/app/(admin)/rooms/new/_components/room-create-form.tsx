@@ -72,7 +72,9 @@ export function RoomCreateForm() {
         <fieldset className="flex flex-col gap-2" aria-describedby="period-summary">
           <legend className="mb-2 text-sm font-bold">利用期間</legend>
           <p className="text-xs text-ink-muted">
-            開始日と終了日をクリックして選んでください（最大{MAX_ROOM_DAYS}日）。終了日の23:59にルームは消えます
+            開始日と終了日をクリックして選んでください（最大{MAX_ROOM_DAYS}日）。
+            <br />
+            終了日の23:59にルームは消えます
           </p>
           <Calendar
             mode="range"
@@ -100,7 +102,7 @@ export function RoomCreateForm() {
 
         <p className="flex gap-2.5 rounded-xl bg-sun px-5 py-4 text-xs leading-relaxed text-ink-muted">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          作成すると、招待URLが表示されます。期限がくると、会話・ノート・ファイルはすべて消えます。
+          作成すると、招待URLが表示されます。期限がくると、会話・ファイルはすべて消えます。
         </p>
 
         {/* 入力は正しいが、ルームの作成や招待URLの発行に失敗したとき */}

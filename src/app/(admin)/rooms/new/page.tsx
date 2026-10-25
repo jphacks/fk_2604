@@ -25,7 +25,13 @@ async function getHeaderActions() {
 // TODO: Supabase接続後、未ログインなら /login へリダイレクトする
 export default async function NewRoomPage() {
   return (
-    <PageShell logoHref="/dashboard" actions={await getHeaderActions()} footer>
+    // 背景はチャット画面と同じ、空のグラデーション＋ふんわりした雲（globals.css の bg-sky-clouds）
+    <PageShell
+      className="bg-sky-clouds"
+      logoHref="/dashboard"
+      actions={await getHeaderActions()}
+      footer
+    >
       <main className="mx-auto w-full max-w-xl flex-1 px-5 pt-8 pb-16 md:pt-10">
         <Link
           href="/dashboard"
@@ -34,8 +40,12 @@ export default async function NewRoomPage() {
           <ArrowLeft className="size-3.5" aria-hidden />
           メインに戻る
         </Link>
-        <h1 className="mt-5 text-2xl font-bold md:text-[28px]">新しい雲を、つくりましょう。</h1>
-        <p className="mt-3 text-sm text-ink-muted">必要な期間だけ集まれる、あなたたちのトークルーム。</p>
+        <h1 className="mt-5 text-2xl font-bold md:text-[28px]">新しいくもを、つくろう。</h1>
+        <p className="mt-3 text-sm text-ink-muted">
+          必要な期間だけ、気軽に集まれる。
+          <br />
+          終われば雲のように自然に消えていくトークルーム。
+        </p>
 
         <RoomCreateForm />
 
