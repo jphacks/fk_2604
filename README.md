@@ -53,7 +53,7 @@
 
 <!-- 仮の画像: ルーム作成画面（カレンダーで利用期間を選ぶところ） -->
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/65a74036-0afa-47b3-b1b3-8625fbdff291" alt="新規ルーム作成画面。カレンダーで10月25日〜10月30日の利用期間を選んでいる" width="2863" />
+  <img width="2849" height="1669" alt="image" src="https://github.com/user-attachments/assets/d07bab2a-e6ac-4ab5-a66a-e15024c6cf1e" />
 </p>
 
 - **そもそも残さない設計**
