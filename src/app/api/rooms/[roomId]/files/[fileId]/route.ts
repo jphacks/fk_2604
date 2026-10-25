@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getFile, getRoom } from "@/lib/dev-store";
-import { isPreviewableImage } from "@/lib/file-limits";
-import type { ApiErrorCode } from "@/lib/types";
+import { authorizeRoom, fail } from "@/lib/room-authorization";
+import { downloadHeaders, validatedMime } from "@/lib/file-validation";
+import { toSharedFile, type FileRow } from "@/lib/room-files";
 
 /**
  * GET /api/rooms/{roomId}/files/{fileId}?guestId=...
@@ -18,38 +18,35 @@ import type { ApiErrorCode } from "@/lib/types";
 
 type Ctx = { params: Promise<{ roomId: string; fileId: string }> };
 
-function fail(code: ApiErrorCode, status: number) {
-  return NextResponse.json({ error: code }, { status });
-}
-
 export async function GET(req: Request, { params }: Ctx) {
   const { roomId, fileId } = await params;
   const url = new URL(req.url);
-  const guestId = url.searchParams.get("guestId");
   const forceDownload = url.searchParams.get("download") === "1";
 
-  if (!guestId) return fail("BAD_REQUEST", 400);
+  const authorized = await authorizeRoom(roomId);
+  if ("response" in authorized) return authorized.response;
+  if (!/^[0-9a-f-]{36}$/i.test(fileId)) return fail("FILE_NOT_FOUND", 404);
+  try {
 
-  const room = getRoom(roomId);
-  if (!room) return fail("ROOM_GONE", 404);
-  if (!room.members.has(guestId)) return fail("NOT_MEMBER", 403);
+  const { admin } = authorized;
+    const stored = await admin.from("room_files").select("*").eq("room_id", roomId).eq("id", fileId).eq("status", "ready").maybeSingle();
+    if (stored.error) throw stored.error;
+    if (!stored.data) return fail("FILE_NOT_FOUND", 404);
+    const meta = toSharedFile(stored.data as FileRow);
+    const downloaded = await admin.storage.from("room-files").download((stored.data as FileRow).storage_path);
+    if (downloaded.error) {
+      if ("statusCode" in downloaded.error && String(downloaded.error.statusCode) === "404") return fail("FILE_NOT_FOUND", 404);
+      throw downloaded.error;
+    }
+    const data = new Uint8Array(await downloaded.data.arrayBuffer());
+    const rechecked = await authorizeRoom(roomId);
+    if ("response" in rechecked) return rechecked.response;
+    if (data.length !== meta.size) throw new Error("Stored size mismatch");
+    meta.mimeType = validatedMime(meta.mimeType, data) ?? "application/octet-stream";
+    // 日本語のファイル名を正しく渡すため filename* を使う（RFC 6266）
 
-  const stored = getFile(room, fileId);
-  if (!stored) return fail("FILE_NOT_FOUND", 404);
-
-  const { meta, data } = stored;
-  const inline = !forceDownload && isPreviewableImage(meta.mimeType);
-  // 日本語のファイル名を正しく渡すため filename* を使う（RFC 6266）
-  const encoded = encodeURIComponent(meta.name);
-
-  return new NextResponse(data, {
-    headers: {
-      "Content-Type": inline ? meta.mimeType : "application/octet-stream",
-      "Content-Length": String(meta.size),
-      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="file"; filename*=UTF-8''${encoded}`,
-      "X-Content-Type-Options": "nosniff",
-      // 消えるチャットなので、ブラウザや途中のサーバーに残さない
-      "Cache-Control": "private, no-store",
-    },
-  });
+    return new NextResponse(data, {
+      headers: downloadHeaders(meta, forceDownload),
+    });
+  } catch { return fail("SERVICE_UNAVAILABLE", 503); }
 }
