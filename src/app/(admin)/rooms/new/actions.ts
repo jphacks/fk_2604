@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ensureTodayInvite, inviteUrlFor } from "@/lib/invite";
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +53,7 @@ export async function createRoom(
     .select("id")
     .single();
   if (roomError || !room) {
+    console.error("[createRoom] ルームの作成に失敗", roomError);
     return { message: "ルームを作成できませんでした", fields: { name } };
   }
 
@@ -63,6 +65,9 @@ export async function createRoom(
     await supabase.from("rooms").delete().eq("id", room.id);
     return { message: "招待URLを発行できませんでした", fields: { name } };
   }
+
+  // ダッシュボードのルーム一覧に新しいルームを出すため、キャッシュを破棄する
+  revalidatePath("/dashboard");
 
   return {
     created: { roomId: room.id, inviteToken, inviteUrl: await inviteUrlFor(inviteToken) },

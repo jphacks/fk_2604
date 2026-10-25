@@ -2,12 +2,9 @@ import { Chats } from "@/components/chats";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 
-// Next.js 16 では params は Promise なので await が必要
 export default async function RoomPage({
   params,
-}: {
-  params: Promise<{ roomId: string }>;
-}) {
+}: PageProps<"/rooms/[roomId]">) {
   const { roomId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

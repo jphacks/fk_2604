@@ -2,12 +2,23 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FolderOpen, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AttachMenu } from "@/components/chat/attach-menu";
+import { FileAttachment } from "@/components/chat/file-attachment";
+import { SharedFiles } from "@/components/chat/shared-files";
+import { UploadStatus } from "@/components/chat/upload-status";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import { formatExpiryDate, formatTime } from "@/lib/format";
-import type { Member, Message, MessagesResponse, RoomInfo } from "@/lib/types";
+import type {
+  Member,
+  Message,
+  MessagesResponse,
+  RoomInfo,
+  SharedFile,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { createClient as createSupabaseClient } from "@/lib/supabase/browser";
 
 /* ============================================================
  * chats.tsx：チャット画面（S-09）に必要な機能をすべて集約したファイル
@@ -22,6 +33,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/browser";
 type Identity = Member;
 type Status = "loading" | "ok" | "gone" | "full" | "error";
 
+const STORAGE_KEY = "ephemeral-chat:identity";
 const POLL_MS = 2500; // 新着を取りに行く間隔
 
 /* ---------- 2. 小さな関数 ---------- */
@@ -45,7 +57,10 @@ export function Chats({ roomId }: { roomId: string }) {
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [members, setMembers] = useState<Member[]>([]);
+  const [files, setFiles] = useState<SharedFile[]>([]); // 共有ファイル一覧
   const [status, setStatus] = useState<Status>("loading");
+  const [dragging, setDragging] = useState(false); // ファイルをドラッグ中か
+  const [filesOpen, setFilesOpen] = useState(false); // スマホの共有ファイル一覧
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -55,21 +70,26 @@ export function Chats({ roomId }: { roomId: string }) {
   const composing = useRef(false); // 日本語変換中のEnterを送信と誤認しないため
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // --- ブラウザに保存した一時ID＋ニックネームを読み込む ---
+  // 仮の本人確認。本番は入室フォーム＋署名付きCookieに置き換える
+  // sessionStorage はタブごとに別なので、同じブラウザの別タブ＝別の参加者として試せる
   useEffect(() => {
-    const supabase = createSupabaseClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setMe({ guestId: data.user.id, nickname: "" });
-      }
-      setReady(true);
-    });
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) setMe(JSON.parse(saved));
+    } catch {}
+    setReady(true);
   }, []);
 
   // --- 新着メッセージの取得 ---
   const fetchNew = useCallback(async () => {
     if (!me || fetching.current) return;
     fetching.current = true;
-    const qs = new URLSearchParams({ cursor: String(cursor.current) });
+    const qs = new URLSearchParams({
+      guestId: me.guestId,
+      nickname: me.nickname,
+      cursor: String(cursor.current),
+    });
     try {
       const res = await fetch(`/api/rooms/${roomId}/messages?${qs}`, {
         cache: "no-store",
@@ -82,12 +102,7 @@ export function Chats({ roomId }: { roomId: string }) {
       setRoom(data.room);
       setMemberCount(data.memberCount);
       setMembers(data.members);
-      const currentMember = data.members.find(
-        (member) => member.guestId === me.guestId,
-      );
-      if (currentMember && currentMember.nickname !== me.nickname) {
-        setMe(currentMember);
-      }
+      setFiles(data.files ?? []);
       setStatus("ok");
       if (data.messages.length > 0) {
         setMessages((prev) => {
@@ -105,13 +120,18 @@ export function Chats({ roomId }: { roomId: string }) {
   // 一定間隔で取得（ポーリング）。後でPusher等に替えるならここだけ変える
   useEffect(() => {
     if (!me) return;
-    const initialFetch = window.setTimeout(() => void fetchNew(), 0);
+    fetchNew();
     const t = setInterval(fetchNew, POLL_MS);
-    return () => {
-      clearTimeout(initialFetch);
-      clearInterval(t);
-    };
+    return () => clearInterval(t);
   }, [fetchNew, me]);
+
+  // --- ファイル共有 ---
+  // アップロードが終わったら、すぐ新着を取りに行ってチャットに反映する
+  const { upload, uploading, error: uploadError, clearError } = useFileUpload(
+    roomId,
+    me,
+    fetchNew,
+  );
 
   // 新着が来たら一番下までスクロール
   useEffect(() => {
@@ -150,6 +170,7 @@ export function Chats({ roomId }: { roomId: string }) {
             const nickname = nameInput.trim();
             if (!nickname) return;
             const identity = { guestId: crypto.randomUUID(), nickname };
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
             setMe(identity);
           }}
         >
@@ -239,10 +260,40 @@ export function Chats({ roomId }: { roomId: string }) {
               </li>
             ))}
           </ul>
+
+          <div className="mt-6">
+            <SharedFiles files={files} roomId={roomId} guestId={me.guestId} />
+          </div>
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* ファイルをこの範囲にドラッグ＆ドロップしても共有できる */}
+      <div
+        className="relative flex min-w-0 flex-1 flex-col"
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault(); // これがないとドロップできない
+          setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          // 子要素の上に移っただけのときは消さない
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+        }}
+        onDrop={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDragging(false);
+          const file = e.dataTransfer.files[0];
+          if (file) upload(file);
+        }}
+      >
+        {dragging && (
+          <div className="pointer-events-none absolute inset-2 z-30 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-cloud bg-cloud-pale/90 text-ink">
+            <Upload className="size-8" aria-hidden />
+            <p className="text-sm font-medium">ここにドロップして共有</p>
+          </div>
+        )}
+
         {/* ヘッダー：PCではルーム名、スマホでは戻る・人数・消滅日も表示 */}
         <header className="flex items-center gap-3 border-b bg-white px-3 py-2 md:px-6 md:py-3">
           <Link href="/" className="px-2 text-xl md:hidden" aria-label="戻る">
@@ -256,6 +307,21 @@ export function Chats({ roomId }: { roomId: string }) {
               {formatMembers(memberCount, room?.maxMembers)}
             </p>
           </div>
+          {/* スマホ：サイドバーがないので、ボタンで共有ファイル一覧を開く */}
+          <button
+            type="button"
+            onClick={() => setFilesOpen((v) => !v)}
+            aria-expanded={filesOpen}
+            aria-label="共有ファイル"
+            className="relative rounded-full p-2 text-ink hover:bg-cloud-pale md:hidden"
+          >
+            <FolderOpen className="size-5" />
+            {files.length > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-cloud px-1 text-[10px] font-bold text-ink">
+                {files.length}
+              </span>
+            )}
+          </button>
           <div className="text-right md:hidden">
             <p className="text-[10px] text-slate-400">消滅日</p>
             <p className="text-sm font-bold tabular-nums text-rose-500">
@@ -263,6 +329,12 @@ export function Chats({ roomId }: { roomId: string }) {
             </p>
           </div>
         </header>
+
+        {filesOpen && (
+          <div className="max-h-[50dvh] overflow-y-auto border-b bg-white px-4 py-3 md:hidden">
+            <SharedFiles files={files} roomId={roomId} guestId={me.guestId} />
+          </div>
+        )}
 
         {status === "error" && (
           <p className="bg-amber-100 px-3 py-1 text-center text-xs text-amber-800">
@@ -307,16 +379,26 @@ export function Chats({ roomId }: { roomId: string }) {
                     <div
                       className={cn("flex items-end gap-1.5", isMine && "flex-row-reverse")}
                     >
-                      <p
-                        className={cn(
-                          "whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm",
-                          isMine
-                            ? "rounded-br-sm bg-emerald-500 text-white"
-                            : "rounded-bl-sm bg-white text-slate-900",
-                        )}
-                      >
-                        {m.body}
-                      </p>
+                      {m.file ? (
+                        // ファイル共有のメッセージは、吹き出しの代わりにファイルのカードを出す
+                        <FileAttachment
+                          file={m.file}
+                          roomId={roomId}
+                          guestId={me.guestId}
+                          isMine={isMine}
+                        />
+                      ) : (
+                        <p
+                          className={cn(
+                            "whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm",
+                            isMine
+                              ? "rounded-br-sm bg-emerald-500 text-white"
+                              : "rounded-bl-sm bg-white text-slate-900",
+                          )}
+                        >
+                          {m.body}
+                        </p>
+                      )}
                       <time className="shrink-0 text-[10px] text-slate-400">
                         {formatTime(m.sentAt)}
                       </time>
@@ -331,11 +413,16 @@ export function Chats({ roomId }: { roomId: string }) {
 
         {/* 入力欄 */}
         <div className="border-t bg-white p-3 md:px-8 md:py-4">
+          <div className="mx-auto max-w-4xl">
+            <UploadStatus
+              uploading={uploading}
+              error={uploadError}
+              onCloseError={clearError}
+            />
+          </div>
           <div className="mx-auto flex max-w-4xl items-end gap-2">
-            {/* 「＋」メニュー（消えるノート／ファイル共有）は後で実装 */}
-            <Button type="button" variant="outline" size="icon" disabled aria-label="メニュー">
-              ＋
-            </Button>
+            {/* 「＋」メニュー：ファイル共有（消えるノートは準備中） */}
+            <AttachMenu onSelectFile={upload} disabled={!!uploading} />
             <textarea
               value={text}
               rows={1}

@@ -1,61 +1,66 @@
-import type { Message, RoomInfo } from "./types";
+import type { Message, RoomInfo, SharedFile } from "./types";
 
 /**
- * Temporary message-only store until the Redis migration is implemented.
- * Room creation and authorization use Supabase, not this store.
+ * 開発用のメモリ上ストア（Redis結合までの仮置き）。
+ * - サーバーを再起動すると消える（＝エフェメラルの動作確認にはちょうど良い）
+ * - Next.jsの開発サーバーはファイル更新でモジュールが再読込されるため、
+ *   globalThis に載せて状態を保つ
+ * 後で lib/redis/ の実装に差し替える。関数名は変えないこと。
+ *
+ * ファイル共有について（要件定義 Q-11）
+ * - いまはファイルの中身もメモリに置いている
+ * - 本番では「中身は Supabase Storage、情報（名前・サイズなど）は Redis の room:{roomId}:files」
+ *   に分ける。差し替えるのは saveFile / getFile の中身だけ
+ * - ルームが消える（期限切れ）とファイルも一緒に消える
  */
+type StoredFile = { meta: SharedFile; data: ArrayBuffer };
+
 type DevRoom = {
   info: RoomInfo;
-  startDate?: string;
-  members: Map<string, string>;
+  members: Map<string, string>; // guestId -> nickname
   messages: Message[];
+  files: Map<string, StoredFile>; // fileId -> 中身と情報
 };
 
 const g = globalThis as unknown as { __devRooms?: Map<string, DevRoom> };
 const rooms = (g.__devRooms ??= new Map<string, DevRoom>());
 
-export function createRoom(
-  name: string,
-  startDate: string,
-  expiresAt: number,
-): RoomInfo {
-  const info: RoomInfo = {
-    id: crypto.randomUUID(),
-    name,
-    maxMembers: null,
-    startsAt: Date.parse(`${startDate}T00:00:00+09:00`),
-    expiresAt,
-  };
-  rooms.set(info.id, { info, startDate, members: new Map(), messages: [] });
-  return info;
-}
-
 export function getRoom(roomId: string): DevRoom | null {
-  const room = rooms.get(roomId);
-  if (!room || room.info.expiresAt <= Date.now()) return null;
+  let room = rooms.get(roomId);
+  // 動作確認用：未作成のIDは「人数上限なし・3時間」のルームとして自動作成
+  if (!room) {
+    room = {
+      info: {
+        id: roomId,
+        name: "誕生日サプライズ会議",
+        maxMembers: null,
+        expiresAt: Date.now() + 3 * 60 * 60 * 1000,
+      },
+      members: new Map(),
+      messages: [],
+      files: new Map(),
+    };
+    rooms.set(roomId, room);
+  }
+  // 古い形（files がない）で残っている開発中のデータに備える
+  room.files ??= new Map();
+  if (room.info.expiresAt <= Date.now()) {
+    rooms.delete(roomId); // メッセージもファイルもまとめて消える
+    return null; // 期限切れ＝消滅
+  }
   return room;
 }
 
+/** 入室。既に参加済みなら人数に数えない。上限があって満員なら false */
 export function addMember(room: DevRoom, guestId: string, nickname: string) {
   if (room.members.has(guestId)) {
     room.members.set(guestId, nickname);
     return true;
   }
-  if (room.info.maxMembers !== null && room.members.size >= room.info.maxMembers) {
-    return false;
-  }
+  const max = room.info.maxMembers;
+  if (max !== null && room.members.size >= max) return false;
   room.members.set(guestId, nickname);
   return true;
-}
-
-export function getMessageRoom(roomId: string, info: RoomInfo): DevRoom {
-  let room = rooms.get(roomId);
-  if (!room) {
-    room = { info, members: new Map(), messages: [] };
-    rooms.set(roomId, room);
-  }
-  room.info = info;
-  return room;
 }
 
 export function pushMessage(
@@ -63,22 +68,69 @@ export function pushMessage(
   senderId: string,
   nickname: string,
   body: string,
+  file?: SharedFile,
 ): Message {
-  const message: Message = {
+  const msg: Message = {
     id: crypto.randomUUID(),
     senderId,
     nickname,
     body,
     sentAt: Date.now(),
+    ...(file ? { file } : {}),
   };
-  room.messages.push(message);
+  room.messages.push(msg);
   if (room.messages.length > 500) room.messages.shift();
-  return message;
+  return msg;
 }
 
+/** cursor（配列の添字）以降のメッセージを返す */
 export function listMessages(room: DevRoom, cursor: number) {
   return {
     messages: room.messages.slice(cursor),
     nextCursor: room.messages.length,
   };
+}
+
+/* ---------- ファイル共有 ---------- */
+
+/** ルームで使っている合計バイト数 */
+export function usedBytes(room: DevRoom) {
+  let total = 0;
+  for (const f of room.files.values()) total += f.meta.size;
+  return total;
+}
+
+/** ファイルを保存して、その情報を返す */
+export function saveFile(
+  room: DevRoom,
+  input: {
+    name: string;
+    mimeType: string;
+    data: ArrayBuffer;
+    uploadedBy: string;
+    nickname: string;
+  },
+): SharedFile {
+  const meta: SharedFile = {
+    id: crypto.randomUUID(),
+    name: input.name,
+    size: input.data.byteLength,
+    mimeType: input.mimeType,
+    uploadedBy: input.uploadedBy,
+    nickname: input.nickname,
+    uploadedAt: Date.now(),
+  };
+  room.files.set(meta.id, { meta, data: input.data });
+  return meta;
+}
+
+export function getFile(room: DevRoom, fileId: string): StoredFile | null {
+  return room.files.get(fileId) ?? null;
+}
+
+/** 共有中のファイル一覧（新しい順） */
+export function listFiles(room: DevRoom): SharedFile[] {
+  return [...room.files.values()]
+    .map((f) => f.meta)
+    .sort((a, b) => b.uploadedAt - a.uploadedAt);
 }

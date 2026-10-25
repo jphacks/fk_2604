@@ -19,3 +19,12 @@ export function formatExpiryDate(
     weekday: "short",
   });
 }
+
+// ファイルサイズ：「820 B」「12.3 KB」「4.5 MB」
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  // 「10.0 MB」は「10 MB」にする
+  const fixed = (n: number) => n.toFixed(1).replace(/\.0$/, "");
+  if (bytes < 1024 * 1024) return `${fixed(bytes / 1024)} KB`;
+  return `${fixed(bytes / 1024 / 1024)} MB`;
+}
