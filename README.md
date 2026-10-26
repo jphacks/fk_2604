@@ -7,7 +7,15 @@
 <!-- <img width="3840" height="2160" alt="アプリ概要" src="https://github.com/user-attachments/assets/49d4e5fb-0550-4132-8dbf-c15ea859fb68" /> -->
 <img width="1920" height="1080" alt="kumotalk-overview" src="docs/images/kumotalk-overview.gif" />
 
-- 「くもとーく」アプリURL：https://fk-2604.vercel.app/
+あなたが普段使っているチャットアプリ、こんな風に感じたことはありませんか？
+
+- イベントが終わって何カ月も動いていないグループがずっと残っているけれど、そのままにしている
+- 以前グループに招待するために友だちになったけど、「これ誰だっけ...？」という連絡先
+
+そこで私たちが提案するのは、
+決めた期間が過ぎると、メッセージもチャットも跡形もなく消えるグループチャット「**くもとーく**」です。
+
+「くもとーく」アプリURL：https://fk-2604.vercel.app/
 <!-- - アプリ概要 スライド資料： -->
 
 ## 製品概要
