@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Info } from "lucide-react";
 import { CloudBubble } from "@/components/brand/cloud-bubble";
 import { PageShell } from "@/components/layout/page-shell";
@@ -45,6 +46,19 @@ async function getRoomPreview(inviteToken: string): Promise<RoomPreview | null> 
 }
 
 /**
+ * ログイン済みの管理者が、自分の作ったルームの招待URLを開いたか。
+ * 匿名ログインのゲストや、ログインしていない人は false（いつもどおり入室フォームを出す）
+ */
+async function isSignedInOwner(roomId: string): Promise<boolean> {
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.is_anonymous) return false;
+  const { data } = await supabase.rpc("is_room_owner", { p_room_id: roomId });
+  return data === true;
+}
+
+/**
  * 残り時間のカウントダウンの起点（サーバーで描いた時刻）。
  * Date.now() はコンポーネント本体で呼ぶと react-hooks/purity に引っかかるので、ここで呼ぶ
  */
@@ -87,6 +101,8 @@ export default async function JoinPage({
 }: PageProps<"/join/[inviteToken]">) {
   const { inviteToken } = await params;
   const room = await getRoomPreview(inviteToken);
+  // 作成者はニックネームを使わないので、入室フォームを出さずにそのままチャットへ
+  if (room && (await isSignedInOwner(room.id))) redirect(`/rooms/${room.id}`);
   const now = await getNow();
 
   return (

@@ -57,6 +57,13 @@ export async function joinRoom(
     return { message: "招待URLが無効、または期限切れです", fields: { nickname } };
   }
 
+  // 作成者（ログイン済みの管理者）は room_members に登録せず、そのままチャットへ。
+  // 入室画面を開いた後にログインした場合など、画面側の判定をすり抜けたときの備え
+  if (!userData.user.is_anonymous) {
+    const { data: isOwner } = await supabase.rpc("is_room_owner", { p_room_id: preview.id });
+    if (isOwner === true) redirect(`/rooms/${preview.id}`);
+  }
+
   const { error: joinError } = await supabase.rpc("join_room", {
     p_room_id: preview.id,
     p_token_hash: tokenHash,
